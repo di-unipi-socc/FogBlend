@@ -1,8 +1,8 @@
 import numpy as np
 from fognetx import Config, get_args
-from fognetx.environment import Environment
 from fognetx.ppo.agent import PPOAgent
 from fognetx.ppo.trainer import PPOTrainer
+from fognetx.environment import Environment
 
 
 if __name__ == "__main__":

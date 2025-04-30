@@ -1,8 +1,7 @@
-import time
 import torch
 from fognetx.config import Config
-from fognetx.environment.environment import Environment
 from fognetx.ppo.agent import PPOAgent
+from fognetx.environment.environment import Environment
 
 
 class PPOTrainer:
@@ -22,7 +21,7 @@ class PPOTrainer:
         """
         for epoch in range(self.config.num_epochs):
             # Create a new environment for each epoch
-            self.env.create_env()
+            self.env.create_env(epoch)
 
             # Reset buffer
             self.agent.buffer.clear()
@@ -33,22 +32,21 @@ class PPOTrainer:
             # Iterate through the requests in the environment
             request_elaborated = 0
             while request_elaborated < self.env.requests.num_v_net:
-
                 # Fully elaborate the request
                 done = False
                 while not done:
                     # Get the current observation
-                    obs = self.env.get_observations()
+                    obs, mask = self.env.get_observations()
 
                     with torch.no_grad():
                         # Get the action from the agent
-                        high_action, low_action, log_prob = self.agent.act(obs)
+                        high_action, low_action, log_prob = self.agent.act(obs, mask)
 
                         # Get the value from the agent
                         value = self.agent.evaluate(obs)
 
                     # Take a step in the environment
-                    reward, done = self.env.step(high_action, low_action)
+                    reward, done = self.env.step(high_action.item(), low_action.item())
 
                     # Store the transition in the buffer
                     self.agent.buffer.store(obs, (high_action, low_action), log_prob, reward, done, value)
@@ -62,4 +60,10 @@ class PPOTrainer:
 
                 # Update the request elaborated count
                 request_elaborated += 1
+            
+            # Log the epoch results
+            self.env.recorder.log_epoch() 
 
+            # Save the model
+            if (epoch + 1) % self.config.save_interval == 0 and self.config.save:
+                self.agent.save(epoch + 1)

@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
+from fognetx.network.gnn import GCNConvNet
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.utils import to_dense_batch
-from fognetx.network.gnn import GCNConvNet
 
 
 class Encoder(nn.Module):
@@ -111,12 +111,12 @@ class CriticNetwork(nn.Module):
         # Sum only over valid nodes
         sum_pooled = transformed.sum(dim=1)  # shape: [batch_size, embedding_dim]
         valid_node_counts = p_mask.sum(dim=1).clamp(min=1).unsqueeze(-1)  # shape: [batch_size, 1]
-
-        # Mean over valid nodes
+        
+        # Mean over valid nodes (shape: [batch_size, embedding_dim])
         pooled = sum_pooled / valid_node_counts
         
         # Final transformation to scalar value (shape: [batch_size, 1])
-        value = self.value_head(pooled)  
+        value = self.value_head(pooled)
 
         return value.squeeze(-1)  # shape: [batch_size]
     

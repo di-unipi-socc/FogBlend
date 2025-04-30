@@ -1,6 +1,7 @@
 import numpy as np
-from fognetx.config import Config
 import networkx as nx
+from typing import TypedDict
+from fognetx.config import Config
 
 
 class VirtualNetwork():
@@ -16,8 +17,19 @@ class VirtualNetwork():
         self.arrival_time = arrival_time
         self.lifetime = lifetime
         self.net = net
+        self.num_nodes = net.number_of_nodes()
         self.node_resources = node_resources
         self.link_resources = link_resources
+
+
+class RequestDict(TypedDict):
+    """
+    Typed dictionary for virtual network requests.
+    """
+    id: int
+    v_net: VirtualNetwork
+    event_type: str
+    time: int
 
 
 class VirtualNetworkRequests():
@@ -33,7 +45,8 @@ class VirtualNetworkRequests():
             config: Configuration object containing network parameters.
         """
         # Size
-        self.num_v_net = config.num_v_net
+        self.num_v_net = config.num_v_net 
+        self.num_requests = config.num_v_net * 2  # Each virtual network has an arrival and leave event
         self.min_size = config.v_net_min_size
         self.max_size = config.v_net_max_size
         # Resources
@@ -62,6 +75,7 @@ class VirtualNetworkRequests():
         arrival_times = self.rng.poisson(lam=1/self.arrival_rate, size=self.num_v_net)
         # Generate the lifetimes for each virtual network request (Exponential distribution)
         lifetimes = self.rng.exponential(scale=self.request_avg_lifetime, size=self.num_v_net)
+        lifetimes = np.maximum(lifetimes, 1) # Ensure lifetimes are at least 1
         # Compute cumulative arrival times
         cumulative_arrival_times = np.cumsum(arrival_times)
 
@@ -69,8 +83,8 @@ class VirtualNetworkRequests():
         event_list = []
         for i in range(self.num_v_net):
             v_net = self.generate_v_net(num_nodes[i], int(cumulative_arrival_times[i]), int(lifetimes[i]), i)
-            # Add arrive event to the event list
-            event_list.append({'id': 0, 'v_net': v_net, 'event_type': 'arrive', 'time': v_net.arrival_time})
+            # Add arrival event to the event list
+            event_list.append({'id': 0, 'v_net': v_net, 'event_type': 'arrival', 'time': v_net.arrival_time})
             # Add leave event to the event list
             event_list.append({'id': 0, 'v_net': v_net, 'event_type': 'leave', 'time': v_net.arrival_time + v_net.lifetime})
         
@@ -131,7 +145,7 @@ class VirtualNetworkRequests():
         return VirtualNetwork(id=id, arrival_time=arrival_time, lifetime=lifetime, node_resources=self.node_resources, link_resources=self.link_resources, net=v_net)
 
 
-    def get_request_by_id(self, id):
+    def get_request_by_id(self, id) -> RequestDict:
         """
         Get a virtual network request by its ID.
 

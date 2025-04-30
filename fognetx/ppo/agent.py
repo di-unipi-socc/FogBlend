@@ -1,11 +1,10 @@
-import numpy as np
 import torch
+from torch.optim import Adam
 from fognetx.config import Config
+from fognetx.ppo.buffer import PPOBuffer
+from torch.distributions import Categorical
 from fognetx.environment.environment import Environment
 from fognetx.network import ActorNetwork, CriticNetwork 
-from torch.optim import Adam
-from torch.distributions import Categorical
-from fognetx.ppo.buffer import PPOBuffer
 
 
 class PPOAgent:
@@ -49,7 +48,7 @@ class PPOAgent:
 
         # Apply mask to logits if provided
         if mask is not None:
-            high_action_mask = (mask.sum(2) != 0).float()
+            high_action_mask = (mask.sum(2) != 0).float() # Sum over the physical nodes to get a mask for the virtual nodes
             high_action_logits = high_action_logits.masked_fill(high_action_mask == 0, -1e9)
 
         # Transform logits to probabilities
@@ -69,7 +68,8 @@ class PPOAgent:
         
         # Apply mask to logits if provided
         if mask is not None:
-            low_level_mask = mask[torch.arange(mask.shape[0]), :, high_action]  # extracts the feasibility mask only for the chosen virtual node in each batch
+            # Get the mask for the low-level actions
+            low_level_mask = mask[torch.arange(mask.size(0)), high_action]
             low_action_logits = low_action_logits.masked_fill(low_level_mask == 0, -1e9)
 
         # Transform logits to probabilities

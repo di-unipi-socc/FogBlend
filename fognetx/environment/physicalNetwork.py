@@ -1,5 +1,5 @@
-import networkx as nx
 import numpy as np
+import networkx as nx
 from fognetx.config import Config
 
 
@@ -50,8 +50,6 @@ class PhysicalNetwork():
         else:
             self.num_nodes = self.get_size(self.min_size, self.max_size, self.iter)
             self.iter += 1
-
-        self.num_nodes = 500
 
         # Repeat until a connected waxman graph is created
         while True:

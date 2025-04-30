@@ -1,3 +1,7 @@
+# Save and test folder
+save/
+test/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

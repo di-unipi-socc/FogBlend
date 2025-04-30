@@ -1,11 +1,30 @@
+import torch
 import argparse
+from typing import Optional
 from datetime import datetime
 from dataclasses import dataclass
-import os
-from typing import Optional
 
-import torch
+# Class and function to handle command line arguments
+def get_args():
+    """
+    Parse command line arguments and return the arguments as a dictionary.
+    """
+    args = parser.parse_args()
+    args_dict = {k: v for k, v in vars(args).items() if v is not None}
 
+    return args_dict
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+# Create a parser for command line arguments
 parser = argparse.ArgumentParser(description="FogNetX Configuration")
 
 # Constants
@@ -58,7 +77,7 @@ parser.add_argument("-target_steps", type=int, help="Number of steps to collect 
 parser.add_argument("-update_times", type=int, help="Number of updates per iteration")
 parser.add_argument("-entropy_coeff", type=float, help="Entropy coefficient for exploration")
 parser.add_argument("-critic_coeff", type=float, help="Critic coefficient for value loss")
-parser.add_argument("-norm_advantage", type=bool,help="Normalize advantage values")
+parser.add_argument("-norm_advantage", type=str2bool,help="Normalize advantage values")
 
 
 # Model
@@ -67,8 +86,8 @@ parser.add_argument("-embedding_dim", type=int, help="Embedding dimension for th
 
 # Execution
 parser.add_argument("-seed", type=int, help="Random seed for reproducibility")
-parser.add_argument("-mask_actions", type=bool, help="Mask invalid actions in the action space")
-parser.add_argument("-reusable", type=bool, help="Allow reuse of resources in the environment")
+parser.add_argument("-mask_actions", type=str2bool, help="Mask invalid actions in the action space")
+parser.add_argument("-reusable", type=str2bool, help="Allow reuse of resources in the environment")
 parser.add_argument("-eval_interval", type=int, help="Interval for evaluation")
 parser.add_argument("-save_interval", type=int, help="Interval for saving the model")
 
@@ -79,20 +98,9 @@ parser.add_argument("-prolog_mode", type=str, help='Prolog mode for the test')
 
 
 # System
-parser.add_argument("-save", type=bool, help="Save the generated data")
+parser.add_argument("-save", type=str2bool, help="Save the generated data")
 parser.add_argument("-save_dir", type=str, help="Path to save the generated data")
-parser.add_argument("-verbose", type=bool, help="Verbose mode")
-
-
-# Class and function to handle command line arguments
-def get_args():
-    """
-    Parse command line arguments and return the arguments as a dictionary.
-    """
-    args = parser.parse_args()
-    args_dict = {k: v for k, v in vars(args).items() if v is not None}
-
-    return args_dict
+parser.add_argument("-verbose", type=str2bool, help="Verbose mode")
 
 
 @dataclass
@@ -119,7 +127,7 @@ class Config:
     v_net_max_node_resources: int = 20
     v_net_min_link_resources: int = 0
     v_net_max_link_resources: int = 25
-    arrival_rate: float = 0.001
+    arrival_rate: float = 0.08
     request_avg_lifetime: int = 500
 
     # Training
