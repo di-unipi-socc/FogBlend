@@ -214,7 +214,7 @@ class Observation:
         ), dim=-1)
 
         obs['p_net'] = Batch.from_data_list([
-            Data(x=x_p_net, edge_index=self.p_link_pair)
+            Data(x=x_p_net.clone(), edge_index=self.p_link_pair)  # Clone to avoid in-place resources modification
         ])
 
         # Virtual network observation
@@ -251,7 +251,7 @@ class Observation:
         ), dim=-1)
 
         obs['v_net'] = Batch.from_data_list([
-            Data(x=x_v_net, edge_index=self.v_link_pair)
+            Data(x=x_v_net.clone(), edge_index=self.v_link_pair)
         ])
 
         return obs

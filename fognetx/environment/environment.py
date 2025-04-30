@@ -83,7 +83,7 @@ class Environment():
                                             solution, self.observations, self.env_config, check_feasibility)
 
         # Check if the request is fully placed and routed
-        fully_placed = True if len(solution.node_mapping.keys()) == len(self.current_v_net.net.nodes()) else False
+        fully_placed = True if len(solution.node_mapping.keys()) == self.current_v_net.num_nodes else False
 
         # Check if the request handling is terminated (failed or completed)
         if check_feasibility and not solution.is_feasible():

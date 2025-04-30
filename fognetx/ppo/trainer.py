@@ -49,7 +49,7 @@ class PPOTrainer:
                     reward, done = self.env.step(high_action.item(), low_action.item())
 
                     # Store the transition in the buffer
-                    self.agent.buffer.store(obs, (high_action, low_action), log_prob, reward, done, value)
+                    self.agent.buffer.store({'obs': obs, 'mask': mask}, (high_action, low_action), log_prob, reward, done, value)
 
                 # If collected enough samples, update the agent
                 if self.agent.buffer.length >= self.config.target_steps:
