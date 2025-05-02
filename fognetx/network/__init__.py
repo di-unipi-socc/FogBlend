@@ -1,2 +1,2 @@
 from .gnn import GCNConvNet
-from .network import CriticNetwork, ActorNetwork
+from .network import ActorCriticNetwork

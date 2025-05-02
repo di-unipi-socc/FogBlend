@@ -1,13 +1,13 @@
-
+# TYPE CHECKING IMPORTS
+from __future__ import annotations; from typing import TYPE_CHECKING
+if TYPE_CHECKING: 
+    from typing import List
+    from fognetx.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork
+# REGULAR IMPORTS
 import torch
 import numpy as np
 import networkx as nx
-from typing import List
-from fognetx.config import Config
 from torch_geometric.data import Data, Batch
-from fognetx.environment.solution import Solution
-from fognetx.environment.physicalNetwork import PhysicalNetwork
-from fognetx.environment.virtualNetworkRequets import VirtualNetwork
 
 
 class Observation:

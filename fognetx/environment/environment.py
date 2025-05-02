@@ -1,5 +1,8 @@
+# TYPE CHECKING IMPORTS
+from __future__ import annotations; from typing import TYPE_CHECKING
+if TYPE_CHECKING: from fognetx.utils.types import Config
+# REGULAR IMPORTS
 import fognetx.environment.controller as controller
-from fognetx.config import Config
 from fognetx.utils.recorder import Recorder
 from fognetx.environment.solution import Solution
 from fognetx.environment.observation import Observation

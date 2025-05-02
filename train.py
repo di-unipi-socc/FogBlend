@@ -18,7 +18,7 @@ if __name__ == "__main__":
     env = Environment(config)
 
     # Initialize the agent
-    agent = PPOAgent(config, env)
+    agent = PPOAgent(config)
 
     # Initialize the PPO trainer
     trainer = PPOTrainer(config, agent, env)

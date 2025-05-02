@@ -1,7 +1,8 @@
+# TYPE CHECKING IMPORTS
+from __future__ import annotations; from typing import TYPE_CHECKING
+if TYPE_CHECKING: from fognetx.utils.types import Config, PPOAgent, Environment
+# REGULAR IMPORTS
 import torch
-from fognetx.config import Config
-from fognetx.ppo.agent import PPOAgent
-from fognetx.environment.environment import Environment
 
 
 class PPOTrainer:
@@ -53,8 +54,14 @@ class PPOTrainer:
 
                 # If collected enough samples, update the agent
                 if self.agent.buffer.length >= self.config.target_steps:
+                    # Compute current value
+                    with torch.no_grad():
+                        obs, _ = self.env.get_observations()
+                        current_value = self.agent.evaluate(obs)
+                    # Compute the advantages and returns
+                    self.agent.buffer.compute_returns_advantages(current_value, self.config)
                     # Update the agent
-                    self.agent.update()
+                    self.agent_update()
                     # Clear the buffer
                     self.agent.buffer.clear()   
 
@@ -67,3 +74,18 @@ class PPOTrainer:
             # Save the model
             if (epoch + 1) % self.config.save_interval == 0 and self.config.save:
                 self.agent.save(epoch + 1)
+
+    
+    def agent_update(self):
+        """
+        Update the agent using the PPO algorithm. The parameters are gathered from the config object.
+        """
+        for i in range(self.config.update_times):
+            for batch in self.agent.buffer.get_batches(self.config.batch_size, self.config.device):
+                # Unpack the batch
+                obs, masks, high_actions, low_actions, log_probs, returns, advantages = batch
+
+                # Get new log probs and values
+                new_log_probs, new_value = self.agent.evaluate_actions(obs, masks, high_actions, low_actions)
+
+                print(f"Done evaluating actions {i}")

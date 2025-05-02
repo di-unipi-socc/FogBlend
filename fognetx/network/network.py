@@ -59,10 +59,14 @@ class Encoder(nn.Module):
 class CriticNetwork(nn.Module):
     """Critic network to estimate the value of the state."""
     
-    def __init__(self, p_net_feature_dim, v_net_feature_dim, embedding_dim=128, num_layers=2, dropout_prob=0.0, batch_norm=False):
+    def __init__(self, p_net_feature_dim, v_net_feature_dim, embedding_dim=128, num_layers=2, dropout_prob=0.0, batch_norm=False, p_net_encoder=None, v_net_encoder=None):
         super(CriticNetwork, self).__init__()
-        self.p_net_encoder = Encoder(input_dim=p_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
-        self.v_net_encoder = Encoder(input_dim=v_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
+        if p_net_encoder is not None and v_net_encoder is not None:
+            self.p_net_encoder = p_net_encoder
+            self.v_net_encoder = v_net_encoder
+        else:
+            self.p_net_encoder = Encoder(input_dim=p_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
+            self.v_net_encoder = Encoder(input_dim=v_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
         
         # From [4*embedding_dim] to [embedding_dim]
         self.head = nn.Sequential(
@@ -125,10 +129,14 @@ class CriticNetwork(nn.Module):
 class ActorNetwork(nn.Module):
     """Actor network to select the action."""
 
-    def __init__(self, p_net_feature_dim, v_net_feature_dim, embedding_dim=128, num_layers=2, dropout_prob=0.0, batch_norm=False):
+    def __init__(self, p_net_feature_dim, v_net_feature_dim, embedding_dim=128, num_layers=2, dropout_prob=0.0, batch_norm=False, p_net_encoder=None, v_net_encoder=None):
         super(ActorNetwork, self).__init__()
-        self.p_net_encoder = Encoder(input_dim=p_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
-        self.v_net_encoder = Encoder(input_dim=v_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
+        if p_net_encoder is not None and v_net_encoder is not None:
+            self.p_net_encoder = p_net_encoder
+            self.v_net_encoder = v_net_encoder
+        else:
+            self.p_net_encoder = Encoder(input_dim=p_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
+            self.v_net_encoder = Encoder(input_dim=v_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
         
         self.high_policy = nn.Sequential(
             nn.Linear(4 * embedding_dim, embedding_dim * 2),
@@ -211,3 +219,57 @@ class ActorNetwork(nn.Module):
         low_level_logits = low_level_logits.masked_fill(p_mask == 0, -1e9)
 
         return low_level_logits  # shape: [batch_size, num_p_nodes]
+
+
+class ActorCriticNetwork(nn.Module):
+    """Actor-Critic network to select actions and estimate the value of the state."""
+
+    def __init__(self, p_net_feature_dim, v_net_feature_dim, embedding_dim=128, num_layers=2, dropout_prob=0.0, batch_norm=False, shared_encoder=False):
+        super(ActorCriticNetwork, self).__init__()
+        if shared_encoder:
+            # Use the same encoder for both actor and critic
+            p_net_encoder = Encoder(input_dim=p_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
+            v_net_encoder = Encoder(input_dim=v_net_feature_dim, embedding_dim=embedding_dim, num_layers=num_layers, batch_norm=batch_norm, dropout=dropout_prob)
+        else:
+            # Use separate encoders for actor and critic
+            p_net_encoder = None
+            v_net_encoder = None
+        self.actor = ActorNetwork(p_net_feature_dim, v_net_feature_dim, embedding_dim, num_layers, dropout_prob, batch_norm, p_net_encoder, v_net_encoder)
+        self.critic = CriticNetwork(p_net_feature_dim, v_net_feature_dim, embedding_dim, num_layers, dropout_prob, batch_norm, p_net_encoder, v_net_encoder)
+
+
+    def forward_high(self, data):
+        """Forward pass for high-level action (virtual node) selection.
+        
+        Args:
+            data: The input data containing the physical and virtual network information.
+            
+        Returns:
+            high_action_logits: The logits for the high-level action (virtual node). Shape: [batch_size, num_v_nodes].
+        """
+        return self.actor.forward_high(data)
+    
+
+    def forward_low(self, data, high_level_action):
+        """Forward pass for low-level action (physical node) selection.
+        
+        Args:
+            data: The input data containing physical and virtual network information.
+            high_level_action: The selected high-level action (virtual node). Shape: [batch_size].
+        
+        Returns:
+            low_level_logits: The logits for the low-level action (physical node). Shape: [batch_size, num_p_nodes].
+        """
+        return self.actor.forward_low(data, high_level_action)
+    
+    
+    def forward_critic(self, data):
+        """Forward pass to estimate the value of the state.
+        
+        Args:
+            data: The input data containing the physical and virtual network information.
+            
+        Returns:
+            value: The estimated value of the state. Shape: [batch_size].
+        """
+        return self.critic(data)

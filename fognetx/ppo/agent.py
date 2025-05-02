@@ -1,10 +1,13 @@
+# TYPE CHECKING IMPORTS
+from __future__ import annotations; from typing import TYPE_CHECKING
+if TYPE_CHECKING: from fognetx.utils.types import Config
+# REGULAR IMPORTS
 import torch
+import fognetx.utils as utils
 from torch.optim import Adam
-from fognetx.config import Config
 from fognetx.ppo.buffer import PPOBuffer
 from torch.distributions import Categorical
-from fognetx.environment.environment import Environment
-from fognetx.network import ActorNetwork, CriticNetwork 
+from fognetx.network import ActorCriticNetwork
 
 
 class PPOAgent:
@@ -12,22 +15,21 @@ class PPOAgent:
     Proximal Policy Optimization (PPO) agent.
     """
 
-    def __init__(self, config: Config, env: Environment):
+    def __init__(self, config: Config):
         self.config = config
 
         # Initialize the actor and critic networks 
         p_net_features_dim = len(config.node_resources) + len(config.link_resources)*3 + 5 # (+5 for v_node_size, v_num_placed_nodes, p_node_status, p_net_node_degrees, average_distance)
         v_net_features_dim = len(config.node_resources) + len(config.link_resources)*3 + 3 # (+3 for v_node_size, v_num_placed_nodes, v_node_status)
 
-        self.actor = ActorNetwork(p_net_features_dim, v_net_features_dim, config.embedding_dim, config.gcn_num_layers, config.dropout_prob, config.batch_norm).to(config.device)
-        self.critic = CriticNetwork(p_net_features_dim, v_net_features_dim, config.embedding_dim, config.gcn_num_layers, config.dropout_prob, config.batch_norm).to(config.device)
+        # Initialize the policy network
+        self.policy = ActorCriticNetwork(p_net_features_dim, v_net_features_dim, config.embedding_dim, config.gcn_num_layers, config.dropout_prob, config.batch_norm, config.shared_encoder).to(config.device)
 
         # Initialize the optimizer
-        self.actor_optimizer = Adam(self.actor.parameters(), lr=config.lr, weight_decay=config.weight_decay)
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+        self.optimizer = Adam(self.policy.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 
         # Initialize the buffer
-        self.buffer = PPOBuffer()  
+        self.buffer = PPOBuffer(config.seed)  
 
 
     def act(self, state, mask=None, sample=True):
@@ -44,7 +46,7 @@ class PPOAgent:
             log_prob: The log probability of the selected actions.
         """
         # Get high-level action logits
-        high_action_logits = self.actor.forward_high(state)
+        high_action_logits = self.policy.forward_high(state)
 
         # Apply mask to logits if provided
         if mask is not None:
@@ -64,7 +66,7 @@ class PPOAgent:
         high_action_log_prob = high_action_dist.log_prob(high_action)
 
         # Get low-level action logits
-        low_action_logits = self.actor.forward_low(state, high_action)
+        low_action_logits = self.policy.forward_low(state, high_action)
         
         # Apply mask to logits if provided
         if mask is not None:
@@ -94,18 +96,62 @@ class PPOAgent:
     def evaluate(self, state):
         """Return value of the state"""
         # Get value from the critic network
-        value = self.critic(state)
+        value = self.policy.critic(state)
         return value
 
 
-    def update(self):
-        # PPO update logic
-        pass
+    def evaluate_actions(self, obs, masks, high_actions, low_actions):
+        """Return log probabilities of the actions and values of the states"""
+        # Get high-level action logits
+        high_action_logits = self.policy.forward_high(obs)
+
+        # Apply mask to logits if provided
+        if masks is not None:
+            high_action_masks = (masks.sum(2) != 0).float()
+            high_action_logits = high_action_logits.masked_fill(high_action_masks == 0, -1e9)
+
+        # Transform logits to probabilities
+        high_action_dist = Categorical(logits=high_action_logits) 
+
+        # Get log prob of the high-level action
+        high_action_log_prob = high_action_dist.log_prob(high_actions)
+
+        # Get low-level action logits
+        low_action_logits = self.policy.forward_low(obs, high_actions)
+
+        # Apply mask to logits if provided
+        if masks is not None:
+            # Get the mask for the low-level actions
+            low_level_mask = masks[torch.arange(masks.size(0)), high_actions]
+            low_action_logits = low_action_logits.masked_fill(low_level_mask == 0, -1e9)
+
+        # Transform logits to probabilities
+        low_action_dist = Categorical(logits=low_action_logits)
+
+        # Get log prob of the low-level action
+        low_action_log_prob = low_action_dist.log_prob(low_actions)
+
+        # Combine log probs
+        log_prob = high_action_log_prob + low_action_log_prob
+
+        # Get value from the critic network
+        value = self.policy.critic(obs)
+
+        return log_prob, value
 
 
-    def save(self, path): 
-        pass
+    def save(self, epoch): 
+        """Save the model in a pickle file"""
+        path = utils.get_model_save_path(epoch, self.config)
+        torch.save({
+            'policy': self.policy.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'config': self.config
+        }, path)
 
 
     def load(self, path): 
-        pass
+        """Load the model from a pickle file"""
+        checkpoint = torch.load(path)
+        self.policy.load_state_dict(checkpoint['policy'])
+        self.optimizer.load_state_dict(checkpoint['optimizer'])

@@ -1,11 +1,10 @@
+# TYPE CHECKING IMPORTS
+from __future__ import annotations; from typing import TYPE_CHECKING
+if TYPE_CHECKING: from fognetx.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork, Observation
+# REGULAR IMPORTS
 import networkx as nx
 import fognetx.utils as utils
 from collections import deque
-from fognetx.config import Config
-from fognetx.environment.solution import Solution
-from fognetx.environment.observation import Observation
-from fognetx.environment.physicalNetwork import PhysicalNetwork
-from fognetx.environment.virtualNetworkRequets import VirtualNetwork
 
 
 def place_and_route(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_node_id, p_node_id, 

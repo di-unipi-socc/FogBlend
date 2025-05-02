@@ -82,6 +82,7 @@ parser.add_argument("-norm_advantage", type=str2bool,help="Normalize advantage v
 
 # Model
 parser.add_argument("-embedding_dim", type=int, help="Embedding dimension for the model")
+parser.add_argument("-shared_encoder", type=str2bool, help="Use shared encoder for actor and critic")
 
 
 # Execution
@@ -153,6 +154,7 @@ class Config:
     gcn_num_layers: int = 2
     batch_norm: bool = False
     dropout_prob: float = 0.0
+    shared_encoder: bool = False
 
     # Execution
     seed: int = 88
@@ -167,6 +169,7 @@ class Config:
 
     # System
     save: bool = True
-    save_dir: str = "save"
+    save_dir: str = SAVE_DIR
+    unique_folder: str = UNIQUE_FOLDER
     verbose: bool = True  
     device: str = "cuda" if torch.cuda.is_available() else "cpu"

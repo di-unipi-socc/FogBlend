@@ -1,9 +1,9 @@
+# TYPE CHECKING IMPORTS
+from __future__ import annotations; from typing import TYPE_CHECKING
+if TYPE_CHECKING: from fognetx.utils.types import Config, PhysicalNetwork, VirtualNetwork
+# REGULAR IMPORTS
 import os
 from typing import OrderedDict
-from fognetx.config import Config
-from fognetx.environment.physicalNetwork import PhysicalNetwork
-from fognetx.environment.virtualNetworkRequets import VirtualNetwork
-
 
 
 class Solution:
@@ -81,7 +81,7 @@ class Solution:
 
         if self.config.save:
             # Compose the log directory path
-            log_dir = os.path.join(self.config.save_dir, 'logs')
+            log_dir = os.path.join(self.config.save_dir, self.config.unique_folder, 'logs')
 
             # Create the directory if it doesn't exist
             os.makedirs(log_dir, exist_ok=True)
