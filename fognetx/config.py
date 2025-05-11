@@ -1,3 +1,4 @@
+import os
 import torch
 import argparse
 from typing import Optional
@@ -27,14 +28,18 @@ def str2bool(v):
 # Create a parser for command line arguments
 parser = argparse.ArgumentParser(description="FogNetX Configuration")
 
-# Constants
+# Resources constants
 NODE_RESOURCES = ["cpu", "gpu", "ram"]
 LINK_RESOURCES = ["bandwidth"]
 
+# Directories constants
 SAVE_DIR = "save"
 timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 UNIQUE_FOLDER = f"run_{timestamp}"
 SUMMARY_FILENAME = "global_summary.csv"
+INFR_DIR = os.path.join('test', 'infr', '{num_nodes}')
+TEST_RESULT_DIR = os.path.join('test', 'results', UNIQUE_FOLDER)
+FOGBRAINX_DIR = os.path.join('fognetx', 'prolog', 'fogbrainx')
 
 
 # Data (physical network)
@@ -94,8 +99,10 @@ parser.add_argument("-save_interval", type=int, help="Interval for saving the mo
 
 
 # Test
-parser.add_argument("-pretrained_model_dir", type=str, help="Path to the pretrained model")
-parser.add_argument("-prolog_mode", type=str, help='Prolog mode for the test')
+parser.add_argument("-pretrained_model_path", type=str, help="Path to the pretrained model")
+parser.add_argument("-num_iterations", type=int, help="Number of iterations for the test")
+parser.add_argument("-test", type=str, help="Test mode ('load' or 'simulation')")
+# parser.add_argument("-prolog_mode", type=str, help='Prolog mode for the test')
 
 
 # System
@@ -123,12 +130,12 @@ class Config:
     # Data (virtual network)
     num_v_net: int = 1000
     v_net_min_size: int = 2
-    v_net_max_size: int = 8
+    v_net_max_size: int = 10
     v_net_min_node_resources: int = 0
     v_net_max_node_resources: int = 20
     v_net_min_link_resources: int = 0
-    v_net_max_link_resources: int = 25
-    arrival_rate: float = 0.08
+    v_net_max_link_resources: int = 50
+    arrival_rate: Optional[float] = None
     request_avg_lifetime: int = 500
 
     # Training
@@ -164,8 +171,11 @@ class Config:
     save_interval: int = 10
 
     # Test
-    pretrained_model_dir: Optional[str] = None
-    prolog_mode: str = "routing"
+    pretrained_model_path: Optional[str] = None
+    num_iterations: int = 100
+    test: str = "load"
+    timeout: int = 300
+    # prolog_mode: str = "routing"
 
     # System
     save: bool = True

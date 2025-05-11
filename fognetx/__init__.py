@@ -1,1 +1,1 @@
-from .config import Config, get_args
+from .config import *

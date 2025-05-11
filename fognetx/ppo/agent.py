@@ -2,12 +2,17 @@
 from __future__ import annotations; from typing import TYPE_CHECKING
 if TYPE_CHECKING: from fognetx.utils.types import Config
 # REGULAR IMPORTS
+import os
 import torch
 import fognetx.utils as utils
 from torch.optim import Adam
 from fognetx.ppo.buffer import PPOBuffer
 from torch.distributions import Categorical
 from fognetx.network import ActorCriticNetwork
+
+# Suppress torch.load warnings
+import warnings
+warnings.filterwarnings("ignore", message=".*?.*?torch.load.*?", category=FutureWarning)
 
 
 class PPOAgent:
@@ -32,12 +37,12 @@ class PPOAgent:
         self.buffer = PPOBuffer(config.seed)  
 
 
-    def act(self, state, mask=None, sample=True):
+    def act(self, state, mask, sample=True):
         """Return action and log probabilities
         
         Args:
-            state: The current state of the environment.
-            mask: The mask to apply to the action logits. If None, no mask is applied. (shape: [batch_size, num_v_nodes, num_p_nodes])
+            state: A dictionary containing the state of the environment (p_net and v_net).
+            mask: The mask to apply to the action logits (shape: [batch_size, num_v_nodes, num_p_nodes]).
             sample: If True, sample an action from the distribution. If False, take the most probable action.
         
         Returns:
@@ -48,10 +53,9 @@ class PPOAgent:
         # Get high-level action logits
         high_action_logits = self.policy.forward_high(state)
 
-        # Apply mask to logits if provided
-        if mask is not None:
-            high_action_mask = (mask.sum(2) != 0).float() # Sum over the physical nodes to get a mask for the virtual nodes
-            high_action_logits = high_action_logits.masked_fill(high_action_mask == 0, -1e9)
+        # Apply mask to logits (virtual nodes are always masked)
+        high_action_mask = (mask.sum(2) != 0).float() # Sum over the physical nodes to get a mask for the virtual nodes
+        high_action_logits = high_action_logits.masked_fill(high_action_mask == 0, -1e9)
 
         # Transform logits to probabilities
         high_action_dist = Categorical(logits=high_action_logits) 
@@ -68,8 +72,8 @@ class PPOAgent:
         # Get low-level action logits
         low_action_logits = self.policy.forward_low(state, high_action)
         
-        # Apply mask to logits if provided
-        if mask is not None:
+        # Apply mask to logits (physical nodes are masked if required by the config)
+        if self.config.mask_actions:
             # Get the mask for the low-level actions
             low_level_mask = mask[torch.arange(mask.size(0)), high_action]
             low_action_logits = low_action_logits.masked_fill(low_level_mask == 0, -1e9)
@@ -94,21 +98,39 @@ class PPOAgent:
 
 
     def evaluate(self, state):
-        """Return value of the state"""
+        """Return value of the state
+        
+        Args:
+            state: A dictionary containing the state of the environment (p_net and v_net).
+            
+        Returns:
+            value: The value of the state.
+        """
         # Get value from the critic network
         value = self.policy.critic(state)
         return value
 
 
-    def evaluate_actions(self, obs, masks, high_actions, low_actions):
-        """Return log probabilities of the actions and values of the states"""
+    def evaluate_actions(self, obs, masks, high_actions, low_actions) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return log probabilities of the actions and values of the states
+        
+        Args:
+            obs: A dictionary containing the state of the environment (p_net and v_net).
+            masks: The mask to apply to the action logits (shape: [batch_size, num_v_nodes, num_p_nodes]).
+            high_actions: The selected high-level actions (virtual nodes).
+            low_actions: The selected low-level actions (physical nodes).
+            
+        Returns:
+            log_prob: The log probabilities of the selected actions.
+            entropy: The entropy of the action distributions.
+            value: The value of the state.
+        """
         # Get high-level action logits
         high_action_logits = self.policy.forward_high(obs)
 
-        # Apply mask to logits if provided
-        if masks is not None:
-            high_action_masks = (masks.sum(2) != 0).float()
-            high_action_logits = high_action_logits.masked_fill(high_action_masks == 0, -1e9)
+        # Apply mask to logits (virtual nodes are always masked)
+        high_action_masks = (masks.sum(2) != 0).float()
+        high_action_logits = high_action_logits.masked_fill(high_action_masks == 0, -1e9)
 
         # Transform logits to probabilities
         high_action_dist = Categorical(logits=high_action_logits) 
@@ -119,8 +141,8 @@ class PPOAgent:
         # Get low-level action logits
         low_action_logits = self.policy.forward_low(obs, high_actions)
 
-        # Apply mask to logits if provided
-        if masks is not None:
+        # Apply mask to logits (physical nodes are masked if required by the config)
+        if self.config.mask_actions:
             # Get the mask for the low-level actions
             low_level_mask = masks[torch.arange(masks.size(0)), high_actions]
             low_action_logits = low_action_logits.masked_fill(low_level_mask == 0, -1e9)
@@ -137,11 +159,23 @@ class PPOAgent:
         # Get value from the critic network
         value = self.policy.critic(obs)
 
-        return log_prob, value
+        # Compute entropy of the distributions
+        entropy = high_action_dist.entropy() + low_action_dist.entropy()
+
+        return log_prob, entropy, value
+    
+
+    def evaluation_mode(self) -> None:
+        """Set the agent in evaluation mode"""
+        self.policy.eval()
 
 
-    def save(self, epoch): 
-        """Save the model in a pickle file"""
+    def save(self, epoch) -> None: 
+        """Save the model in a pickle file
+        
+        Args:
+            epoch: The current epoch of the training.
+        """
         path = utils.get_model_save_path(epoch, self.config)
         torch.save({
             'policy': self.policy.state_dict(),
@@ -150,8 +184,16 @@ class PPOAgent:
         }, path)
 
 
-    def load(self, path): 
-        """Load the model from a pickle file"""
+    def load(self, path) -> None: 
+        """Load the model from a pickle file
+        
+        Args:
+            path: The path to the pickle file.
+        """
+        # Check if the file exists
+        if os.path.exists(path) == False:
+            raise FileNotFoundError(f"File {path} does not exist")
+        # Load the model
         checkpoint = torch.load(path)
         self.policy.load_state_dict(checkpoint['policy'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])

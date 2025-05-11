@@ -1,10 +1,10 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config
+if TYPE_CHECKING: from fognetx.utils.types import Config, VirtualNetwork
 # REGULAR IMPORTS
-import fognetx.environment.controller as controller
+import fognetx.placement.controller as controller
 from fognetx.utils.recorder import Recorder
-from fognetx.environment.solution import Solution
+from fognetx.placement.solution import Solution
 from fognetx.environment.observation import Observation
 from fognetx.environment.physicalNetwork import PhysicalNetwork
 from fognetx.environment.virtualNetworkRequets import VirtualNetworkRequests
@@ -22,11 +22,12 @@ class Environment():
         self.requests = VirtualNetworkRequests(self.env_config)
         self.request_index = 0
         self.observations = {}
+        self.epoch = None
         self.recoder: Recorder = None
         self.solutions: dict[int, Solution] = {}
 
 
-    def create_env(self, epoch):
+    def create_env(self, epoch) -> None:
         """Create the environment generating the physical network and virtual network requests
         
         Args:
@@ -34,7 +35,7 @@ class Environment():
         """
         # Generate the physical network and virtual network requests
         self.p_net.generate_p_net()
-        self.requests.generate_requests()
+        self.requests.generate_requests(self.p_net.num_nodes)
 
         # Reset the request index
         self.request_index = 0
@@ -43,16 +44,18 @@ class Environment():
         request = self.requests.get_request_by_id(0)
         self.current_v_net = request['v_net']
         self.event_type = request['event_type']
+        self.event_time = request['time']
 
         # Initialize observations
         self.observations = Observation(self.p_net, self.current_v_net, self.env_config)
 
-        # Initialize recorder
-        self.recorder = Recorder(epoch, self.p_net.num_nodes, self.env_config)
+        # Initialize epoch and recorder
+        self.epoch = epoch
+        self.recorder = Recorder(epoch, self.p_net.num_nodes, self.requests.arrival_rate, self.env_config)
 
         # Initialize solution
         self.solutions = {}
-        self.solutions[self.current_v_net.id] = Solution(self.request_index, self.event_type, self.p_net, self.current_v_net, self.env_config)
+        self.solutions[self.current_v_net.id] = Solution(self.request_index, self.event_type, request['time'], self.p_net, self.current_v_net, self.env_config)
 
 
     def get_observations(self):
@@ -62,8 +65,7 @@ class Environment():
             obs: The current observations of the environment.
             mask: The action mask if applicable.
         """
-        mask = self.observations.get_mask() if self.env_config.mask_actions else None
-        return self.observations.get_observation(), mask
+        return self.observations.get_observation(), self.observations.get_mask()
         
 
     def step(self, v_node_id, p_node_id, check_feasibility=True):
@@ -76,7 +78,7 @@ class Environment():
 
         Returns:
             reward: The reward received after taking the action.
-            done: A boolean indicating if the episode is done.
+            done: A boolean indicating if the request handling is terminated (failed or completed).
         """
         # Get current partial solution
         solution = self.solutions[self.current_v_net.id]
@@ -96,12 +98,12 @@ class Environment():
         else:
             done = fully_placed
 
-        # If the request is fully placed and routed, compute the information and log the solution
+        # If the request is done, compute the information and log the solution
         if done:
             # Compute information for the solution
             solution.compute_info()
             # Log the solution (arrival request)
-            solution.log()
+            solution.log(file_name=f"requestLog_{self.epoch}.csv")
 
         # Calculate the reward
         reward = self.calculate_reward(solution, fully_placed)
@@ -109,49 +111,51 @@ class Environment():
         # Update recorder
         self.recorder.step_update(reward, solution, done)    
 
-        # If the request is fully placed and routed, move to the next request
+        # If the request is done, move to the next request
         if done:
             # Process all leaving requests until the next arrival
-            self.current_v_net, self.event_type = self.go_next_arrival()
-            # Create new solution for the next request (if exists)
-            if self.current_v_net is not None:
-                self.solutions[self.current_v_net.id] = Solution(self.request_index, self.event_type, self.p_net, self.current_v_net, self.env_config)
-        
+            self.go_next_arrival()
+           
         return reward, done
     
 
-    def go_next_arrival(self):
+    def go_next_arrival(self, log_leave = True) -> None:
         """Move to the next arrival request. All leaving requests are processed.
-        
-        Returns:
-            current_v_net: The virtual network in the next arrival request.
-            event_type: The type of the event (arrival).
+
+        Args:
+            log_leave: If True, log the leaving requests.
         """
         while True:
             # Procede to the next request
             self.request_index += 1
             # Check if next request exists
             if self.request_index >= self.requests.num_requests:
-                return None, None
+                return None
             # Get the next request
             request = self.requests.get_request_by_id(self.request_index)
             current_v_net = request['v_net']
             event_type = request['event_type']
+            event_time = request['time']
 
-            # If the request is an arrival, update the current virtual network and return
+            # If the request is an arrival, update state and add the solution
             if event_type == 'arrival':
                 self.observations.update_v_net(current_v_net)
-                return current_v_net, event_type
+                self.current_v_net = current_v_net
+                self.event_type = event_type
+                self.event_time = event_time
+                self.solutions[current_v_net.id] = Solution(self.request_index, event_type, event_time, self.p_net, current_v_net, self.env_config)
+                return None
             
             # If the request is a leave, but was not placed, skip it
-            if event_type == 'leave' and current_v_net.id not in self.solutions:
+            if event_type == 'leave' and not self.solutions[current_v_net.id].is_feasible():
                 continue
 
             # Create a new solution for the leaving request
-            solution = Solution(self.request_index, event_type, self.p_net, current_v_net, self.env_config)
+            solution = Solution(self.request_index, event_type, event_time, self.p_net, current_v_net, self.env_config)
 
             # Log the solution (leaving request)
-            solution.log()
+            if log_leave:
+                solution.log(file_name=f"requestLog_{self.epoch}.csv")
 
             # If the request is a leave, add resources back to the physical network
             controller.add_resources_solution(self.p_net, self.solutions[current_v_net.id])
@@ -162,14 +166,12 @@ class Environment():
             # Remove the solution from the solutions dictionary
             del self.solutions[current_v_net.id]
         
-
-        
+   
     def calculate_reward(self, solution: Solution, done):
         """Calculate the reward based on the result of the action taken
 
         Args:
             solution: The current solution object.
-            result: The result of the action taken.
             done: A boolean indicating if the episode is done.
 
         Returns:
@@ -186,3 +188,77 @@ class Environment():
             reward += solution.r2c_ratio
 
         return reward
+    
+
+class TestEnvironment(Environment):
+    """
+    Class representing the test environment. It contains the physical network, virtual network requests, 
+    and the observation.
+    """
+    
+    def __init__(self, p_net: PhysicalNetwork, requests: VirtualNetworkRequests, env_config: Config):
+        super().__init__(env_config)
+        self.p_net = p_net
+        self.requests = requests
+        # Initialize the first request
+        request = self.requests.get_request_by_id(0)
+        self.current_v_net = request['v_net']
+        self.event_type = request['event_type']
+        self.event_time = request['time']
+        self.solutions[self.current_v_net.id] = Solution(self.request_index, self.event_type, self.event_time, self.p_net, self.current_v_net, self.env_config)
+        # Initialize observations
+        self.observations = Observation(self.p_net, self.current_v_net, self.env_config)
+
+
+    def step(self, v_node_id, p_node_id):
+        """Take a step in the environment
+
+        Args:
+            v_node_id: The selected high-level action (virtual node id).
+            p_node_id: The selected low-level action (physical node id).
+
+        Returns:
+            done: A boolean indicating if the request is fully placed and routed.
+            solution: The solution found for the request.
+        """
+        # Get current partial solution
+        solution = self.solutions[self.current_v_net.id]
+
+        # Try to place and route the selected virtual node in the physical network
+        controller.place_and_route(self.current_v_net, self.p_net, v_node_id, p_node_id, 
+                                            solution, self.observations, self.env_config, req_feasibility=False)
+
+        # Check if the request is fully placed and routed
+        fully_placed = True if len(solution.node_mapping.keys()) == self.current_v_net.num_nodes else False
+
+        # Check if the request handling is terminated 
+        if fully_placed:
+            # Compute information for the solution
+            solution.compute_info()
+
+            # If not feasible, rollback the solution (ghost solution)
+            if not solution.is_feasible():
+                controller.rollback(self.p_net, solution, self.observations)
+
+            # Test logic must call go_next_arrival
+            
+            return True, solution
+        
+        # Request not fully placed and routed
+        return False, solution
+    
+
+    def apply_prolog_solution(self, p_net: PhysicalNetwork, solution: Solution) -> None:
+        """Update the state of the physical network using the Prolog solution
+        
+        Args:
+            p_net: The physical network to be updated.
+        """
+        # Apply the Prolog solution to the physical network
+        controller.update_p_net_state(p_net, solution, self.observations)
+
+        # Update solution
+        self.solutions[solution.v_net.id] = solution
+        
+        # Update p_net
+        self.p_net = p_net

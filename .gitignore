@@ -1,6 +1,7 @@
 # Save and test folder
 save/
-test/
+test/infr
+test/results
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

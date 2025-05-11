@@ -4,6 +4,7 @@ if TYPE_CHECKING: from fognetx.utils.types import Config
 # REGULAR IMPORTS
 import numpy as np
 import networkx as nx
+import fognetx.utils as utils
 from typing import TypedDict
 
 
@@ -63,14 +64,19 @@ class VirtualNetworkRequests():
         self.arrival_rate = config.arrival_rate
         self.request_avg_lifetime = config.request_avg_lifetime
         self.requests = None
+        # General config
+        self.config = config
         # Random number generator
         self.rng = np.random.default_rng(config.seed)
         
         
-    def generate_requests(self):
+    def generate_requests(self, p_num_nodes) -> None:
         """
         Generate a set of virtual network requests based on the configuration.
         """
+        # Set the arrival rate if not provided in the configuration
+        if self.config.arrival_rate == None:
+            self.arrival_rate = utils.compute_arrival_rate(p_num_nodes)
         # Generate a random number of nodes for each virtual network request
         num_nodes = self.rng.integers(self.min_size, self.max_size, size=self.num_v_net, endpoint=True)
 
@@ -108,6 +114,8 @@ class VirtualNetworkRequests():
 
         Args:
             num_nodes: Number of nodes in the virtual network.
+            arrival_time: Arrival time of the virtual network.
+            lifetime: Lifetime of the virtual network.
 
         Returns:
             A virtualNetwork object representing the generated virtual network.

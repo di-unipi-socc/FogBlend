@@ -214,7 +214,7 @@ class Observation:
         ), dim=-1)
 
         obs['p_net'] = Batch.from_data_list([
-            Data(x=x_p_net.clone(), edge_index=self.p_link_pair)  # Clone to avoid in-place resources modification
+            Data(x=x_p_net.clone(), edge_index=self.p_link_pair)  # Clone to avoid in-place tensor modification
         ])
 
         # Virtual network observation
@@ -299,6 +299,14 @@ class Observation:
         # Combine both constraints
         mask = node_constraints_mask * link_mask  # [num_v_nodes, num_p_nodes]
 
+        # Check if there are any valid actions
+        if mask.sum() == 0:
+            # If no valid actions choose all not placed v_node 
+            v_nodes_not_placed = (self.v_nodes_status == 0).squeeze(dim=-1)
+            if v_nodes_not_placed.sum() > 0:
+                # Set the mask to 1 for not placed v_nodes (all p_nodes)
+                mask[v_nodes_not_placed, :] = 1.0
+
         # Add batch dimension
         return mask.unsqueeze(0)  # [1, num_v_nodes, num_p_nodes]
     
@@ -311,9 +319,6 @@ class Observation:
             involved_nodes: The set of involved nodes in the solution.
             solution: The solution object associated with the virtual network.
             event_type: The type of the event (arrival or leave).
-        
-        Returns:
-            None
         """
         # Get node resources of the involved nodes
         involved_nodes_resources = self.get_nodes_resources(
@@ -369,9 +374,6 @@ class Observation:
 
         Args:
             v_net: The new virtual network.
-        
-        Returns:
-            None
         """
         # Update the virtual network and its size
         self.v_net = v_net
@@ -412,9 +414,6 @@ class Observation:
 
         Args:
             solution: The solution object associated with the virtual network.
-        
-        Returns:
-            None
         """
         # Find the involved nodes in the solution
         involved_nodes = {}

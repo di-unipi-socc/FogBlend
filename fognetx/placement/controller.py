@@ -1,6 +1,6 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork, Observation
+if TYPE_CHECKING: from typing import Dict; from fognetx.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork, Observation
 # REGULAR IMPORTS
 import networkx as nx
 import fognetx.utils as utils
@@ -8,7 +8,7 @@ from collections import deque
 
 
 def place_and_route(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_node_id, p_node_id, 
-                    solution: Solution, observations: Observation, config: Config, req_feasibility=True):
+                    solution: Solution, observations: Observation, config: Config, req_feasibility=True) -> None:
     """Take a step in the environment updating the solution. If placement and routing are 
     successful, update the physical network and the observations.
 
@@ -20,18 +20,19 @@ def place_and_route(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_node_id, p_
         solution: The solution object updated with the current mapping.
         observations: The observations object containing the current state of the environment.
         config: The environment configuration.
-        check_feas: If True, check resource feasibility before taking the step.
+        req_feasibility: If True, check resource feasibility before taking the step.
     """
     # Check if the action is feasible (node resources)   
     placement_feasible = check_feasibility(v_node_id, p_node_id, observations) 
 
-    if req_feasibility and not placement_feasible:
+    if not placement_feasible:
         # Failed placement
         solution.place_result = False
-        return None
+        if req_feasibility: 
+            return None
         
     # Get links to route
-    links_to_route = [    # list of tuples ( (physical link), (virtual link), (bandwidth) )
+    links_to_route = [    # list of tuples ( (physical link), (virtual link), bandwidth )
         (
             (p_node_id, solution.node_mapping[neighbor][0]) if p_node_id < solution.node_mapping[neighbor][0]
             else (solution.node_mapping[neighbor][0], p_node_id),
@@ -43,13 +44,12 @@ def place_and_route(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_node_id, p_
     ]
 
     # Order the links to route by decreasing bandwidth
-    links_to_route.sort(key=lambda x: x[1], reverse=True)
+    links_to_route.sort(key=lambda x: x[2], reverse=True) 
 
     # Temporary variables
     used_bw = {}
     routing_paths = {}
-    feasibility = True
-    involved_nodes = {'place': [v_node_id], 'route': set()}
+    involved_nodes = {'place': [p_node_id], 'route': set()}
 
     # Route each link 
     for (src, dst), v_link, required_bw in links_to_route:
@@ -57,14 +57,13 @@ def place_and_route(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_node_id, p_
         route = route_link_bfs(v_net, p_net, v_link, (src, dst), used_bw)
 
         if route is None:
+            # Failed routing
+            solution.route_result = False
             if not req_feasibility:
                 # If no feasible route is found but check_feasibility is False, find shortest path. 
                 # Graph is connected, path always exists.
                 route = nx.dijkstra_path(p_net.net, src, dst)
-                feasibility = False
             else:
-                # Failed routing
-                solution.route_result = False
                 return None
         
         # Add the nodes in the route to the involved nodes
@@ -109,7 +108,7 @@ def place_and_route(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_node_id, p_
     # Update observations
     observations.update_observation(involved_nodes, solution, 'arrival')
 
-    return {'place_result': True, 'route_result': True, 'is_feasible': feasibility}
+    return None
 
 
 def route_link_bfs(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_link, p_link, used_bw = None) -> list:
@@ -215,9 +214,6 @@ def add_resources_solution(p_net: PhysicalNetwork, solution: Solution) -> None:
     Args:
         p_net: The physical network.
         solution: The solution object updated with the current mapping.
-
-    Returns:
-        None
     """
     # Iterate over the node mapping and add resources back to the physical network
     for v_node_id, (p_node_id, resources_used) in solution.node_mapping.items():
@@ -242,13 +238,66 @@ def rollback(p_net: PhysicalNetwork, solution: Solution, observation: Observatio
     Args:
         p_net: The physical network.
         solution: The solution object updated with the current mapping.
-
-    Returns:
-        None
     """
     # Add resources back to the physical network
     add_resources_solution(p_net, solution)
     
     # Update observations
     observation.release_v_net(solution)
+
+
+def apply_solution(p_net: PhysicalNetwork, solution: Solution) -> None:
+    """
+    Apply the solution to the physical network.
     
+    Args:
+        p_net (PhysicalNetwork): The physical network object.
+        solution (Solution): The solution object containing the mapping.
+    """
+    # Get the node and link mappings from the solution
+    node_mapping = solution.node_mapping
+    link_mapping = solution.link_mapping
+
+    # Update the physical node with the resources
+    for v, (p, resources) in node_mapping.items():
+        p_net.net.nodes[p]['cpu'] -= resources['cpu']
+        p_net.net.nodes[p]['gpu'] -= resources['gpu']
+        p_net.net.nodes[p]['ram'] -= resources['ram']
+
+    # Update the physical links with the bandwidth
+    for (u, v), (links, data) in link_mapping.items():
+        for p_u, p_v in links:
+            # Ignore self-loops
+            if p_u == p_v:
+                continue
+            # Update the bandwidth of the physical link
+            p_net.net.edges[p_u, p_v]['bandwidth'] -= data['bandwidth']
+
+
+def update_p_net_state(p_net: PhysicalNetwork, solution: Solution, observation: Observation) -> None:
+    """
+    Update the state of the physical network and observation based on the solution.
+
+    Args:
+        p_net (PhysicalNetwork): The physical network object.
+        solution (Solution): The solution object containing the mapping.
+        observation (Observation): The observation object containing the current state of the environment.
+    """
+    # Update resources in the physical network
+    apply_solution(p_net, solution)
+
+    # Get involved nodes from the solution
+    involved_nodes = {}
+    involved_nodes['place'] = list(set(elem[0] for elem in solution.node_mapping.values()))
+        
+    # Extract unique nodes in routing paths
+    unique_nodes = set()
+    for links, _ in solution.link_mapping.values():
+        for u, v in links:
+            unique_nodes.add(u)
+            unique_nodes.add(v)
+    involved_nodes['route'] = list(unique_nodes)
+
+    # Update observations
+    observation.p_net = p_net
+    observation.update_observation(involved_nodes, solution, 'arrival')

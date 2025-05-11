@@ -2,6 +2,7 @@
 from __future__ import annotations; from typing import TYPE_CHECKING
 if TYPE_CHECKING: from fognetx.utils.types import Config
 # REGULAR IMPORTS
+import os
 import numpy as np
 import networkx as nx
 
@@ -41,7 +42,7 @@ class PhysicalNetwork():
         self.rng = np.random.default_rng(config.seed)
 
     
-    def generate_p_net(self, size=None):
+    def generate_p_net(self, size=None) -> None:
         """
         Generate a physical network based on the configuration of the class.
         
@@ -51,7 +52,7 @@ class PhysicalNetwork():
         if size is not None:
             self.num_nodes = size
         else:
-            self.num_nodes = self.get_size(self.min_size, self.max_size, self.iter)
+            self.num_nodes = self.get_random_size(self.min_size, self.max_size, self.iter)
             self.iter += 1
 
         # Repeat until a connected waxman graph is created
@@ -71,7 +72,7 @@ class PhysicalNetwork():
 
         for i, node in enumerate(self.net.nodes()):
             for j, resource in enumerate(self.node_resources):
-                self.net.nodes[node][resource] = node_resource_values[i, j]
+                self.net.nodes[node][resource] = int(node_resource_values[i, j])
 
 
         # Vectorize random assignment for edges
@@ -86,10 +87,10 @@ class PhysicalNetwork():
 
         for i, edge in enumerate(self.net.edges()):
             for j, resource in enumerate(self.link_resources):
-                self.net.edges[edge][resource] = link_resource_values[i, j]
+                self.net.edges[edge][resource] = int(link_resource_values[i, j])
 
 
-    def get_size(self, min_size, max_size, iter):
+    def get_random_size(self, min_size, max_size, iter):
         """
         Get the random size of the network based on the iteration number.
 
@@ -113,3 +114,53 @@ class PhysicalNetwork():
         
         # Otherwise, return the size for the current iteration
         return self.sizes[iter]
+    
+
+    def apply_load(self, load) -> None:
+        """
+        Apply a load to the physical network.
+
+        Args:
+            load (float): Load to be applied to the network in percentage (0 to 1).
+        """
+        # Nodes
+        for node in self.net.nodes():
+            for resource in self.node_resources:
+                self.net.nodes[node][resource] = int(round((1-load) * self.net.nodes[node][resource]))
+        # Edges
+        for edge in self.net.edges():
+            for resource in self.link_resources:
+                self.net.edges[edge][resource] = int(round((1-load) * self.net.edges[edge][resource]))
+
+
+    def save_to_file(self, save_dir, filename) -> None:
+        """
+        Save the physical network to a file.
+
+        Args:
+            save_dir (str): Directory where the file will be saved.
+            filename (str): Name of the file.
+        """
+        # Create directory if it doesn't exist
+        os.makedirs(save_dir, exist_ok=True)
+        # Save the network to a GML file
+        nx.write_gml(self.net, os.path.join(save_dir, filename))
+
+
+    def load_from_file(self, load_dir, filename) -> None:
+        """
+        Load the physical network from a file.
+
+        Args:
+            load_dir (str): Directory where the file is located.
+            filename (str): Name of the file.
+        """
+        # Check if the file exists
+        file_path = os.path.join(load_dir, filename)
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File {file_path} does not exist")
+        # Load the network from a GML file
+        self.net = nx.read_gml(file_path)
+        self.net = nx.relabel_nodes(self.net, lambda x: int(x))  # Fix node labels
+        # Get the number of nodes
+        self.num_nodes = self.net.number_of_nodes()

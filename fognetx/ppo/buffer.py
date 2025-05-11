@@ -58,7 +58,7 @@ class PPOBuffer:
         self.advantages = None
 
 
-    def compute_returns_advantages(self, current_value, config: Config):
+    def compute_returns_advantages(self, current_value, config: Config) -> None:
         """
         Compute the returns and advantages for the stored transitions.
         """
@@ -97,6 +97,13 @@ class PPOBuffer:
     def get_batches(self, batch_size, device):
         """
         Return an iterator over the batches of the buffer.
+        
+        Args:
+            batch_size (int): The size of each batch.
+            device (str): The device to move the data to.
+        
+        Yields:
+            tuple: A tuple containing the batch data (observations, masks, actions, log_probs, rewards, returns, advantages).
         """
         # Shuffle the indices for batch sampling
         indices = np.arange(self.length)
@@ -115,13 +122,15 @@ class PPOBuffer:
             high_actions = [self.actions[i][0] for i in batch_indices]
             low_actions = [self.actions[i][1] for i in batch_indices]
             log_probs = [self.log_probs[i] for i in batch_indices]
-            returns = [self.returns[i] for i in batch_indices]
-            advantages = [self.advantages[i] for i in batch_indices]
+            rewards = [self.rewards[i] for i in batch_indices]
+            returns = self.returns[batch_indices]
+            advantages = self.advantages[batch_indices]
 
-            # Stack into tensors (returns and advantages are already tensors)
+            # Convert into tensors (returns and advantages are already tensors)
             obs, masks = utils.batch_states(obs, masks, device)
             high_actions = torch.tensor(high_actions, dtype=torch.long, device=device)
             low_actions = torch.tensor(low_actions, dtype=torch.long, device=device)
             log_probs = torch.tensor(log_probs, dtype=torch.float32, device=device)
+            rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
 
-            yield (obs, masks, high_actions, low_actions, log_probs, returns, advantages)
+            yield (obs, masks, high_actions, low_actions, log_probs, rewards, returns, advantages)

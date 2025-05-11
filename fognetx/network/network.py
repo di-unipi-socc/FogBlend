@@ -105,7 +105,7 @@ class CriticNetwork(nn.Module):
 
         # Concatenate the graph-level representation of the virtual network with the node embeddings of the physical network (shape: [batch_size, num_nodes, embedding_dim*4]) 
         node_embeddings_concat = torch.cat((p_net_node_embeddings, v_graph_embeddings.unsqueeze(1).expand(-1, p_net_node_embeddings.size(1), -1)), dim=-1)  
-        
+
         # Apply transformation to each node independently (shape: [batch_size, num_nodes, embedding_dim])
         transformed = self.head(node_embeddings_concat)  
 

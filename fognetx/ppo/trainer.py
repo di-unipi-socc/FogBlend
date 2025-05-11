@@ -3,6 +3,8 @@ from __future__ import annotations; from typing import TYPE_CHECKING
 if TYPE_CHECKING: from fognetx.utils.types import Config, PPOAgent, Environment
 # REGULAR IMPORTS
 import torch
+import numpy as np
+import fognetx.utils as utils
 
 
 class PPOTrainer:
@@ -16,7 +18,7 @@ class PPOTrainer:
         self.config = config
 
 
-    def train(self):
+    def train(self) -> None:
         """
         Train the agent using the PPO algorithm. The parameters are gathered from the config object.
         """
@@ -28,7 +30,7 @@ class PPOTrainer:
             self.agent.buffer.clear()
 
             # Log
-            print(f"\nStarting epoch {epoch}. Infrastructure: {self.env.p_net.num_nodes} nodes.\n")
+            print(f"\nStarting epoch {epoch}. Infrastructure: {self.env.p_net.num_nodes} nodes. Arrival rate: {self.env.requests.arrival_rate:.3f}\n")
 
             # Iterate through the requests in the environment
             request_elaborated = 0
@@ -76,16 +78,56 @@ class PPOTrainer:
                 self.agent.save(epoch + 1)
 
     
-    def agent_update(self):
+    def agent_update(self) -> None:
         """
         Update the agent using the PPO algorithm. The parameters are gathered from the config object.
         """
         for i in range(self.config.update_times):
             for batch in self.agent.buffer.get_batches(self.config.batch_size, self.config.device):
                 # Unpack the batch
-                obs, masks, high_actions, low_actions, log_probs, returns, advantages = batch
+                obs, masks, high_actions, low_actions, log_probs, rewards, returns, advantages = batch
 
                 # Get new log probs and values
-                new_log_probs, new_value = self.agent.evaluate_actions(obs, masks, high_actions, low_actions)
+                new_log_probs, entropy, new_value = self.agent.evaluate_actions(obs, masks, high_actions, low_actions)
 
-                print(f"Done evaluating actions {i}")
+                # Compute the ratio of new and old log probs
+                ratio = torch.exp(new_log_probs - log_probs)
+
+                # Compute the surrogate loss
+                surr1 = ratio * advantages
+                surr2 = torch.clamp(ratio, 1 - self.config.eps_clip, 1 + self.config.eps_clip) * advantages
+                actor_loss = -torch.min(surr1, surr2).mean()
+
+                # Compute the critic loss
+                mse = torch.nn.MSELoss()
+                critic_loss = mse(new_value, returns)
+
+                # Compute mean entropy
+                mean_entropy = entropy.mean()
+                
+                # Compute the total loss
+                loss = actor_loss + self.config.critic_coeff * critic_loss - self.config.entropy_coeff * mean_entropy
+
+                # Backpropagation
+                self.agent.optimizer.zero_grad()
+                loss.backward()
+
+                # Clip gradients (if required)
+                if self.config.clip_grad > 0:
+                    max_norm = self.config.clip_grad
+                else:
+                    max_norm = float('inf')
+                
+                gradient_norm = torch.nn.utils.clip_grad_norm_(self.agent.policy.parameters(), max_norm)
+
+                # Update the parameters
+                self.agent.optimizer.step()
+
+            # Log (in last iteration)
+            if i == self.config.update_times - 1:
+                mean_reward = rewards.mean()
+                mean_value = new_value.mean()
+                mean_returns = returns.mean()
+                mean_advantage = advantages.mean()
+                utils.log_update(loss, actor_loss, critic_loss, mean_entropy, mean_reward, mean_value,
+                                 mean_returns, mean_advantage, gradient_norm, self.config)
