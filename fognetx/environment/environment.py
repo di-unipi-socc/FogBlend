@@ -21,6 +21,7 @@ class Environment():
         self.p_net = PhysicalNetwork(self.env_config)
         self.requests = VirtualNetworkRequests(self.env_config)
         self.request_index = 0
+        self.running_request = 0
         self.observations = {}
         self.epoch = None
         self.recoder: Recorder = None
@@ -100,9 +101,13 @@ class Environment():
 
         # If the request is done, compute the information and log the solution
         if done:
+            # If solution is feasible, increase the running request count
+            if solution.is_feasible():
+                self.running_request += 1
             # Compute information for the solution
             solution.compute_info()
             # Log the solution (arrival request)
+            solution.running_request = self.running_request
             solution.log(file_name=f"requestLog_{self.epoch}.csv")
 
         # Calculate the reward
@@ -146,15 +151,20 @@ class Environment():
                 self.solutions[current_v_net.id] = Solution(self.request_index, event_type, event_time, self.p_net, current_v_net, self.env_config)
                 return None
             
-            # If the request is a leave, but was not placed, skip it
+            # If the request is a leave, but was not placed, delete it without add resources back to the physical network
             if event_type == 'leave' and not self.solutions[current_v_net.id].is_feasible():
+                del self.solutions[current_v_net.id]
                 continue
 
             # Create a new solution for the leaving request
             solution = Solution(self.request_index, event_type, event_time, self.p_net, current_v_net, self.env_config)
+            
+            # Decrease the running request count
+            self.running_request -= 1
 
             # Log the solution (leaving request)
             if log_leave:
+                solution.running_request = self.running_request
                 solution.log(file_name=f"requestLog_{self.epoch}.csv")
 
             # If the request is a leave, add resources back to the physical network
@@ -239,6 +249,11 @@ class TestEnvironment(Environment):
             # If not feasible, rollback the solution (ghost solution)
             if not solution.is_feasible():
                 controller.rollback(self.p_net, solution, self.observations)
+            else:
+                # If feasible, increase the running request count
+                self.running_request += 1
+
+            solution.running_request = self.running_request
 
             # Test logic must call go_next_arrival
             
@@ -259,6 +274,9 @@ class TestEnvironment(Environment):
 
         # Update solution
         self.solutions[solution.v_net.id] = solution
+
+        # Update running request count
+        self.running_request += 1
         
         # Update p_net
         self.p_net = p_net

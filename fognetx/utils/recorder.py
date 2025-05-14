@@ -18,6 +18,7 @@ class Recorder:
         self.route_failure = 0
         self.total_r2c_ratio = 0
         self.total_reward = 0
+        self.max_running_requests = 0
         self.start_time = time.time()
         self.config = config
 
@@ -41,6 +42,7 @@ class Recorder:
             else:
                 self.success_count += 1
                 self.total_r2c_ratio += solution.r2c_ratio
+                self.max_running_requests = max(self.max_running_requests, solution.running_request)
 
 
     def log_epoch(self) -> None:
@@ -49,7 +51,7 @@ class Recorder:
         fields = [
             'epoch', 'num_p_nodes', 'arrival_rate', 'v_net_count', 'success_count',
             'place_failure', 'route_failure', 'avg_r2c_ratio',
-            'avg_reward','elapsed_time'
+            'avg_reward', 'max_running_requests', 'elapsed_time'
         ]
 
         # Calculate the average r2c ratio and reward
@@ -67,6 +69,7 @@ class Recorder:
             print(f"  Routing failures: {self.route_failure}")
             print(f"  Average r2c ratio: {avg_r2c_ratio:.4f}")
             print(f"  Average reward: {avg_reward:.4f}")
+            print(f"  Max running services: {self.max_running_requests}")
             print(f"  Elapsed time: {elapsed_time:.2f} seconds\n")
 
         if self.config.save:
@@ -84,4 +87,4 @@ class Recorder:
                 # Write the epoch results
                 f.write(f"{self.epoch},{self.num_p_nodes},{self.arrival_rate:.3f},{self.v_net_count},"
                         f"{self.success_count},{self.place_failure},{self.route_failure},"
-                        f"{avg_r2c_ratio},{avg_reward},{elapsed_time}\n")
+                        f"{avg_r2c_ratio},{avg_reward},{self.max_running_requests},{elapsed_time}\n")

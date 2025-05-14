@@ -284,22 +284,26 @@ class Observation:
             placed_v_nodes = (self.v_nodes_status > 0).squeeze(dim=-1)
             node_constraints_mask[placed_v_nodes, :] = 0.0
 
-        # Link constraint using bandwidth
-        bw_index = self.config.link_resources.index('bandwidth')
-        p_link_max = self.p_nodes_link_resources[:, bw_index, 0]  # [num_p_nodes]
-        v_link_max = self.v_nodes_link_resources[:, bw_index, 0]  # [num_v_nodes]
-
-        # Expand for broadcasting
-        v_link_expanded = v_link_max.unsqueeze(1)  # [num_v_nodes, 1]
-        p_link_expanded = p_link_max.unsqueeze(0)  # [1, num_p_nodes]
-
         # Link constraint mask
-        link_mask = (p_link_expanded >= v_link_expanded).float()  # [num_v_nodes, num_p_nodes]
+        if not self.config.reusable:
+            # Link constraint using bandwidth
+            bw_index = self.config.link_resources.index('bandwidth')
+            p_link_max = self.p_nodes_link_resources[:, bw_index, 0]  # [num_p_nodes]
+            v_link_max = self.v_nodes_link_resources[:, bw_index, 0]  # [num_v_nodes]
 
-        # Combine both constraints
-        mask = node_constraints_mask * link_mask  # [num_v_nodes, num_p_nodes]
+            # Expand for broadcasting
+            v_link_expanded = v_link_max.unsqueeze(1)  # [num_v_nodes, 1]
+            p_link_expanded = p_link_max.unsqueeze(0)  # [1, num_p_nodes]
+        
+            link_mask = (p_link_expanded >= v_link_expanded).float()  # [num_v_nodes, num_p_nodes]
+            
+            # Combine both constraints
+            mask = node_constraints_mask * link_mask  # [num_v_nodes, num_p_nodes]
+        else:
+            # If node are reusable, link contraints are not needed (can have self-loops)
+            mask = node_constraints_mask  # [num_v_nodes, num_p_nodes]
 
-        # Check if there are any valid actions
+        # Check if there are not valid actions
         if mask.sum() == 0:
             # If no valid actions choose all not placed v_node 
             v_nodes_not_placed = (self.v_nodes_status == 0).squeeze(dim=-1)
@@ -338,9 +342,9 @@ class Observation:
         self.p_nodes_link_resources[involved_node_route] = torch.tensor(involved_nodes_link_resources, dtype=torch.float32, device=self.device)
 
         if event_type == 'arrival':
-            # Update the p status: add one to the node used
-            chosen_node = involved_nodes['place'][0]
-            self.p_nodes_status[chosen_node][0] += 1.0
+            # Update the p status: add one to the nodes used
+            for chosen_node in involved_nodes['place']:
+                self.p_nodes_status[chosen_node][0] += 1.0
 
             # Update the v status: set to 1 the node placed
             for node in solution.node_mapping.keys():
@@ -350,7 +354,7 @@ class Observation:
             self.v_num_placed_nodes = len(solution.node_mapping)
 
             # Convert used physical nodes to a tensor
-            p_nodes_used = list(set(elem[0] for elem in solution.node_mapping.values()))
+            p_nodes_used = list(elem[0] for elem in solution.node_mapping.values())
             used_p_nodes_tensor = torch.tensor(p_nodes_used, dtype=torch.int, device=self.device)
 
             # Select distances from all physical nodes to the used physical nodes (shape: [num_p_nodes, num_used_nodes])
@@ -415,7 +419,7 @@ class Observation:
         Args:
             solution: The solution object associated with the virtual network.
         """
-        # Find the involved nodes in the solution
+        # Find the physical nodes involved in the solution
         involved_nodes = {}
         involved_nodes['place'] = list(set(elem[0] for elem in solution.node_mapping.values()))
         

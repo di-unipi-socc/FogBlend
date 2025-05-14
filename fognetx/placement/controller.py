@@ -201,7 +201,7 @@ def check_link_feasibility(v_net: VirtualNetwork, p_net: PhysicalNetwork, v_link
     v_link = v_net.net.edges[v_link]
 
     # Check if the physical link has enough bandwidth
-    if p_link['bandwidth'] - p_link_used_bw > v_link['bandwidth']:
+    if p_link['bandwidth'] - p_link_used_bw >= v_link['bandwidth']:
         return True
     else:
         return False
@@ -260,9 +260,9 @@ def apply_solution(p_net: PhysicalNetwork, solution: Solution) -> None:
 
     # Update the physical node with the resources
     for v, (p, resources) in node_mapping.items():
-        p_net.net.nodes[p]['cpu'] -= resources['cpu']
-        p_net.net.nodes[p]['gpu'] -= resources['gpu']
-        p_net.net.nodes[p]['ram'] -= resources['ram']
+        for resource in resources.keys():
+            # Update the physical node with the resources
+            p_net.net.nodes[p][resource] -= resources[resource]
 
     # Update the physical links with the bandwidth
     for (u, v), (links, data) in link_mapping.items():
@@ -288,7 +288,7 @@ def update_p_net_state(p_net: PhysicalNetwork, solution: Solution, observation: 
 
     # Get involved nodes from the solution
     involved_nodes = {}
-    involved_nodes['place'] = list(set(elem[0] for elem in solution.node_mapping.values()))
+    involved_nodes['place'] = list(elem[0] for elem in solution.node_mapping.values())
         
     # Extract unique nodes in routing paths
     unique_nodes = set()

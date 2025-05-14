@@ -153,14 +153,18 @@ class PrologInference:
                     solution.node_mapping = utils_prolog.convert_placement(placement, v_net)
                     solution.link_mapping = result['link_mapping']
 
+                    # If the solution is feasible, update running request count
+                    self.env.running_request += 1
+                    solution.running_request = self.env.running_request
+
                     # Consume physical resources
                     controller.apply_solution(p_net, solution)
 
-                    # Update environment with the solution
-                    self.env.solutions[solution.v_net.id] = solution
-
                     # Compute the information of the solution
                     solution.compute_info()
+
+            # Update environment with the solution
+            self.env.solutions[solution.v_net.id] = solution
 
             # Store the solution
             self.solutions.append(solution)
@@ -233,7 +237,7 @@ class HybridInference:
                     # Store the solution
                     self.solutions_rl.append(solution_rl)
 
-            # PROLOG PHASE
+            # PROLOG PHASE    
             # Update the infrastructure
             prolog_manager.update_p_net(p_net_original)
 
@@ -271,7 +275,7 @@ class HybridInference:
             elapsed_time = time.time() - start_time
 
             # Create a solution object
-            solution_prolog = Solution(i, self.env.event_type, self.env.event_time, p_net_original, v_net, self.config)
+            solution_prolog = Solution(self.env.request_index, self.env.event_type, self.env.event_time, p_net_original, v_net, self.config)
 
             # Update the elapsed time
             solution_prolog.elapsed_time = elapsed_time           
@@ -303,6 +307,8 @@ class HybridInference:
                     # If the RL solution is not feasible, apply the Prolog solution
                     if not solution_rl.is_feasible():
                         self.env.apply_prolog_solution(p_net_original, solution_prolog)
+
+                    solution_prolog.running_request = self.env.running_request
 
                     # Compute the information of the solution
                     solution_prolog.compute_info()

@@ -10,11 +10,24 @@ hplacement([],P,_,_,P).
 
 % Preprocessing to get ordered nodes and services
 preprocessing(Services, OrderedNodes, OrderedServices) :-
-	orderNodes(OrderedNodes),
-	orderServices(Services, OrderedServices).
+	orderNodesHW(OrderedNodes),
+	orderServicesBW(Services, OrderedServices).
+
+
+% Order nodes by min HW (descending)
+orderNodesHW(OrderedNodes) :-
+	findall((MinHW, ID),
+		( node(ID, _, HWCaps, _),
+		  HWCaps = (CPU, RAM, Storage),
+		  MinHW is min(CPU, min(RAM, Storage))
+		),
+		NodeHWPairs),
+	sort(1, @>=, NodeHWPairs, SortedPairs),                      
+	findall(ID, member((_, ID), SortedPairs), OrderedNodes).
+
 
 % Order nodes by total outgoing bandwidth (descending)
-orderNodes(OrderedNodes) :-
+orderNodesBW(OrderedNodes) :-
     findall((TotalBW, ID),
         ( node(ID, _, _, _),
           findall(BW, link(ID, _, _, BW), BWs),        
@@ -25,7 +38,7 @@ orderNodes(OrderedNodes) :-
     findall(ID, member((_, ID), SortedPairs), OrderedNodes).
 
 % Order services by their bw requirements (descending)
-orderServices(Services, OrderedServices) :-
+orderServicesBW(Services, OrderedServices) :-
 	findall((ReqBW, ID),
 		( member(ID, Services),
 		  findall(BW, s2s(ID, _, _, BW), BWsOut),  

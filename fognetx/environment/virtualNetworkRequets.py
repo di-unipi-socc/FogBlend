@@ -77,6 +77,7 @@ class VirtualNetworkRequests():
         # Set the arrival rate if not provided in the configuration
         if self.config.arrival_rate == None:
             self.arrival_rate = utils.compute_arrival_rate(p_num_nodes)
+            self.arrival_rate = max(self.arrival_rate, 0.001)  # Ensure a minimum arrival rate
         # Generate a random number of nodes for each virtual network request
         num_nodes = self.rng.integers(self.min_size, self.max_size, size=self.num_v_net, endpoint=True)
 
@@ -164,6 +165,6 @@ class VirtualNetworkRequests():
             id: ID of the virtual network request.
 
         Returns:
-            The virtual network request with the specified ID.
+            request: The virtual network request with the specified ID.
         """
         return self.requests[id]

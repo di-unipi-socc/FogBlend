@@ -26,7 +26,7 @@ def run_load_based_tests(agent, config: Config, save_dir) -> None:
     num_nodes = config.num_nodes
     num_iterations = config.num_iterations
     loads = [0.30, 0.40, 0.50, 0.60, 0.70]
-    config.num_v_net = 1  # Force to 1 for testing
+    config.num_v_net = 1  # Forced to be 1 for load test
 
     # Random generator
     rng = np.random.default_rng(config.seed)

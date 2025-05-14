@@ -37,7 +37,7 @@ class Solution:
         self.cost = 0
         self.revenue = 0
         self.r2c_ratio = 0
-        self.violation = 0
+        self.running_request = 0
         self.elapsed_time = 0
 
 
@@ -80,7 +80,7 @@ class Solution:
         # Fields to log
         fields = [
             'event_id', 'event_type', 'event_time', 'v_net_id', 'place_result', 'route_result',
-            'node_mapping', 'link_mapping', 'cost', 'revenue', 'r2c_ratio', 'violation','elapsed_time'
+            'node_mapping', 'link_mapping', 'cost', 'revenue', 'r2c_ratio', 'running_request', 'elapsed_time'
         ]
 
         if self.config.save:
@@ -109,5 +109,5 @@ class Solution:
                         f"{self.v_net.id},{self.place_result},{self.route_result},"
                         f"{node_mapping},{link_mapping},"
                         f"{self.cost},{self.revenue},"
-                        f"{self.r2c_ratio},{self.violation},{self.elapsed_time}\n"
+                        f"{self.r2c_ratio},{self.running_request},{self.elapsed_time}\n"
                         )
