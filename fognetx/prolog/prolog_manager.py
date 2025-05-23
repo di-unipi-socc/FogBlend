@@ -1,6 +1,6 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import List, Tuple, Dict; from fognetx.utils.types import PhysicalNetwork, VirtualNetwork, Solution
+if TYPE_CHECKING: from typing import List, Tuple, Dict; from fognetx.utils.types import PhysicalNetwork, VirtualNetwork, Solution, Config
 # REGULAR IMPORTS
 import os
 import janus_swi as janus  # type: ignore
@@ -14,12 +14,13 @@ from fognetx.prolog import manager_instance
 
 class PrologManager:
 
-    def __init__(self):
+    def __init__(self, config: Config):
         self.p_net: PhysicalNetwork = None
         self.v_net: VirtualNetwork = None
         self.previous_placement: List[Tuple] = None
         self.link_mapping: Dict = OrderedDict()
-
+        self.config = config
+        
 
     def prepare_fogbrainx(self):
         """
@@ -31,9 +32,19 @@ class PrologManager:
         placer_path = os.path.join(FOGBRAINX_DIR, 'placers', 'placer-heu-py.pl')
         check_path = os.path.join(FOGBRAINX_DIR, 'placers', 'requirements-check-py.pl')
         manager_path = os.path.join('fognetx', 'prolog')
+
+        # Heuristic path
+        if self.config.heuristic == 'bw':
+            heu_path = os.path.join(FOGBRAINX_DIR, 'placers', 'heuristics', 'bw-heu.pl')
+        elif self.config.heuristic == 'hw':
+            heu_path = os.path.join(FOGBRAINX_DIR, 'placers', 'heuristics', 'hw-heu.pl')
+        else:
+            raise ValueError(f"Unknown heuristic: {self.config.heuristic}")
+    
         # Consult the Prolog files and add the python manager
         janus.query_once(f"consult('{base_path}').")
         janus.query_once(f"consult('{placer_path}').")
+        janus.query_once(f"consult('{heu_path}').")
         janus.query_once(f"consult('{check_path}').")
         janus.query_once(f"py_add_lib_dir('{manager_path}'). py_import(utils_prolog, []).")
 

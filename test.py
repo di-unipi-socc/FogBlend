@@ -1,8 +1,10 @@
 import os
-import fognetx.utils.utils as utils
+import yaml
 import test.test_logic as tl
+import fognetx.utils.utils as utils
+from dataclasses import asdict
 from fognetx.ppo.agent import PPOAgent    
-from fognetx.config import get_args, Config, TEST_RESULT_DIR, SAVE_DIR
+from fognetx.config import get_args, Config, TEST_RESULT_DIR, SAVE_DIR, UNIQUE_FOLDER
 
 
 if __name__ == "__main__":
@@ -11,10 +13,10 @@ if __name__ == "__main__":
     config = Config(**args)
 
     # In case of default save_dir, set it to TEST_RESULT_DIR
-    save_dir = TEST_RESULT_DIR if config.save_dir == SAVE_DIR else config.save_dir
+    config.save_dir = TEST_RESULT_DIR if config.save_dir == SAVE_DIR else os.path.join(config.save_dir, UNIQUE_FOLDER)
 
     # Create the save directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(config.save_dir, exist_ok=True)
 
     # Load the model   
     agent = PPOAgent(config)
@@ -26,9 +28,14 @@ if __name__ == "__main__":
     # Warm up the agent
     utils.warmup_agent(agent, config)
 
+    # Save the configuration to a YAML file
+    with open(os.path.join(config.save_dir, 'config.yaml'), 'w') as f:
+        yaml.safe_dump(asdict(config), f, default_flow_style=False, sort_keys=False)
+
+    # Run tests based on the specified test type
     if config.test == 'load':
-        tl.run_load_based_tests(agent, config, save_dir)
+        tl.run_load_based_tests(agent, config)
     elif config.test == 'simulation':
-        tl.run_simulation_based_tests(agent, config, save_dir)
+        tl.run_simulation_based_tests(agent, config)
     else:
         raise ValueError("Invalid test type. Use 'load' or 'simulation'.")

@@ -1,8 +1,9 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import Dict, Optional
+if TYPE_CHECKING: from typing import Dict, Optional; from fognetx.utils.types import TestEnvironment
 # REGULAR IMPORTS
 import os
+import copy
 
 def initialize_result_dict(load: float, num_nodes: int, num_iterations: int) -> Dict:
     """
@@ -71,6 +72,25 @@ def update_results(accum: Dict, result_rl: Optional[Dict] = None, result_prolog:
         accum['avg_time_failure_rl_phase'] += result_hybrid['avg_time_failure_rl_phase']
         accum['avg_time_failure_prolog_phase'] += result_hybrid['avg_time_failure_prolog_phase']
         accum['avg_r2c_ratio_hybrid'] += result_hybrid['avg_r2c_ratio_hybrid']
+
+
+def convert_env_prolog(env: TestEnvironment) -> TestEnvironment:
+    """
+    Convert the environment to Prolog format removing CUDA if present.
+    
+    Args:
+        env (TestEnvironment): The environment to be converted.
+    
+    Returns:
+        TestEnvironment: The converted environment.
+    """
+    # Deep copy the environment to avoid modifying the original
+    env_copy = copy.deepcopy(env)
+    # Remove CUDA from the environment
+    env_copy.env_config.device = 'cpu'
+    # Remove observation (Tensor)
+    env_copy.observations = None
+    return env_copy
 
 
 def finalize_results(result: Dict, total_requests: int) -> None:

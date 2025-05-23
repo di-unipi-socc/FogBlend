@@ -66,7 +66,6 @@ parser.add_argument("-request_avg_lifetime", type=int, help="Lifetime of request
 
 
 # Training
-parser.add_argument("-num_workers", type=int, help="Number of workers to distributedly train the model")
 parser.add_argument("-num_epochs", type=int, help="Number of training epochs")
 parser.add_argument("-lr", type=float, help="Learning rate for the optimizer")
 parser.add_argument("-clip_grad", type=float, help="Gradient clipping value")
@@ -102,13 +101,14 @@ parser.add_argument("-save_interval", type=int, help="Interval for saving the mo
 parser.add_argument("-pretrained_model_path", type=str, help="Path to the pretrained model")
 parser.add_argument("-num_iterations", type=int, help="Number of iterations for the test")
 parser.add_argument("-test", type=str, help="Test mode ('load' or 'simulation')")
-# parser.add_argument("-prolog_mode", type=str, help='Prolog mode for the test')
+parser.add_argument("-heuristic", type=str, help="Prolog heuristic for the test")
 
 
 # System
 parser.add_argument("-save", type=str2bool, help="Save the generated data")
 parser.add_argument("-save_dir", type=str, help="Path to save the generated data")
 parser.add_argument("-verbose", type=str2bool, help="Verbose mode")
+parser.add_argument("-device", type=str, help="Device to use for training ('cpu' or 'cuda')")
 
 
 @dataclass
@@ -139,7 +139,6 @@ class Config:
     request_avg_lifetime: int = 500
 
     # Training
-    num_workers: int = 1
     num_epochs: int = 100
     lr: float = 1e-3
     clip_grad: float = 0.5
@@ -175,7 +174,7 @@ class Config:
     num_iterations: int = 100
     test: str = "load"
     timeout: int = 300
-    # prolog_mode: str = "routing"
+    heuristic: str = "bw"
 
     # System
     save: bool = True

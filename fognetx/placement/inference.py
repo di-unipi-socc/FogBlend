@@ -2,6 +2,7 @@
 from __future__ import annotations; from typing import TYPE_CHECKING
 if TYPE_CHECKING: from typing import Tuple; from fognetx.utils.types import Config, PPOAgent, TestEnvironment
 # REGULAR IMPORTS
+import sys
 import time
 import copy
 import fognetx.placement.controller as controller
@@ -21,7 +22,7 @@ class AgentInference:
         self.env = env  # TestEnvironment must be already initialized
         self.config = config
         self.solutions = []
-        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running RL Agent", unit="request") if config.test == 'simulation' else None
+        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running RL Agent", unit="request", position=0) if config.test == 'simulation' else None
 
 
     def run_inference(self) -> list[Solution]:
@@ -65,7 +66,7 @@ class PrologInference:
         self.env = env  # TestEnvironment must be already initialized
         self.config = config
         self.solutions = []
-        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Prolog", unit="request") if config.test == 'simulation' else None
+        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Prolog", unit="request", position=1) if config.test == 'simulation' else None
 
 
     def run_inference(self) -> list[Solution]:
@@ -73,7 +74,7 @@ class PrologInference:
         Run the inference process.
         """
         # Create PrologManager instance
-        prolog_manager = PrologManager()
+        prolog_manager = PrologManager(self.config)
 
         # Set the prolog manager to the global variable (so that Prolog can call class methods)
         prolog_manager.set_global_manager()
@@ -124,7 +125,7 @@ class PrologInference:
             elapsed_time = time.time() - start_time
 
             # Create a solution object
-            solution = Solution(i, event_type, event_time, p_net, v_net, self.config)
+            solution = Solution(self.env.request_index, event_type, event_time, p_net, v_net, self.config)
 
             # Update the elapsed time
             solution.elapsed_time = elapsed_time           
@@ -155,13 +156,14 @@ class PrologInference:
 
                     # If the solution is feasible, update running request count
                     self.env.running_request += 1
-                    solution.running_request = self.env.running_request
 
                     # Consume physical resources
                     controller.apply_solution(p_net, solution)
 
                     # Compute the information of the solution
                     solution.compute_info()
+
+            solution.running_request = self.env.running_request
 
             # Update environment with the solution
             self.env.solutions[solution.v_net.id] = solution
@@ -173,7 +175,7 @@ class PrologInference:
             self.pbar.update(1) if self.pbar is not None else None
             
             # Go to the next request
-            self.env.go_next_arrival(log_leave=False)
+            self.env.go_next_arrival(log_leave=False, update_obs=False)
             v_net = self.env.current_v_net
             event_type = self.env.event_type
             event_time = self.env.event_time
@@ -192,7 +194,7 @@ class HybridInference:
         self.config = config
         self.solutions_rl = []
         self.solutions_prolog = []
-        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Hybrid", unit="request") if config.test == 'simulation' else None
+        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Hybrid", unit="request", position=2) if config.test == 'simulation' else None
 
 
     def run_inference(self) -> list[Tuple[Solution, Solution]]:
@@ -200,7 +202,7 @@ class HybridInference:
         Run the inference process.
         """
         # Create PrologManager instance
-        prolog_manager = PrologManager()
+        prolog_manager = PrologManager(self.config)
 
         # Set the prolog manager to the global variable (so that Prolog can call class methods)
         prolog_manager.set_global_manager()
@@ -308,12 +310,11 @@ class HybridInference:
                     if not solution_rl.is_feasible():
                         self.env.apply_prolog_solution(p_net_original, solution_prolog)
 
-                    solution_prolog.running_request = self.env.running_request
-
                     # Compute the information of the solution
                     solution_prolog.compute_info()
 
             # Store the solution
+            solution_prolog.running_request = self.env.running_request
             self.solutions_prolog.append(solution_prolog)
 
             # Update the progress bar

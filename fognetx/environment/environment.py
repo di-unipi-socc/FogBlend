@@ -263,6 +263,61 @@ class TestEnvironment(Environment):
         return False, solution
     
 
+    def go_next_arrival(self, log_leave = True, update_obs = True) -> None:
+        """Move to the next arrival request. All leaving requests are processed.
+
+        Args:
+            log_leave: If True, log the leaving requests.
+        """
+        while True:
+            # Procede to the next request
+            self.request_index += 1
+            # Check if next request exists
+            if self.request_index >= self.requests.num_requests:
+                return None
+            # Get the next request
+            request = self.requests.get_request_by_id(self.request_index)
+            current_v_net = request['v_net']
+            event_type = request['event_type']
+            event_time = request['time']
+
+            # If the request is an arrival, update state and add the solution
+            if event_type == 'arrival':
+                if update_obs:
+                    self.observations.update_v_net(current_v_net)
+                self.current_v_net = current_v_net
+                self.event_type = event_type
+                self.event_time = event_time
+                self.solutions[current_v_net.id] = Solution(self.request_index, event_type, event_time, self.p_net, current_v_net, self.env_config)
+                return None
+            
+            # If the request is a leave, but was not placed, delete it without add resources back to the physical network
+            if event_type == 'leave' and not self.solutions[current_v_net.id].is_feasible():
+                del self.solutions[current_v_net.id]
+                continue
+
+            # Create a new solution for the leaving request
+            solution = Solution(self.request_index, event_type, event_time, self.p_net, current_v_net, self.env_config)
+            
+            # Decrease the running request count
+            self.running_request -= 1
+
+            # Log the solution (leaving request)
+            if log_leave:
+                solution.running_request = self.running_request
+                solution.log(file_name=f"requestLog_{self.epoch}.csv")
+
+            # If the request is a leave, add resources back to the physical network
+            controller.add_resources_solution(self.p_net, self.solutions[current_v_net.id])
+
+            # Update the observations
+            if update_obs:
+                self.observations.release_v_net(self.solutions[current_v_net.id])
+
+            # Remove the solution from the solutions dictionary
+            del self.solutions[current_v_net.id]
+    
+
     def apply_prolog_solution(self, p_net: PhysicalNetwork, solution: Solution) -> None:
         """Update the state of the physical network using the Prolog solution
         

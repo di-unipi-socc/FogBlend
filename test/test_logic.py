@@ -7,12 +7,13 @@ import copy
 import numpy as np
 import test.utils_test as utils_test
 from tqdm import tqdm
-from fognetx.config import TEST_RESULT_DIR, INFR_DIR
+from fognetx.config import INFR_DIR
+from multiprocessing import Process, Queue
 from fognetx.placement.inference import AgentInference, PrologInference, HybridInference
 from fognetx.environment.environment import TestEnvironment, PhysicalNetwork, VirtualNetworkRequests
 
 
-def run_load_based_tests(agent, config: Config, save_dir) -> None:
+def run_load_based_tests(agent, config: Config) -> None:
     """
     Run load-based tests for the RL agent, Prolog agent, and hybrid agent.
     The tests are executed on various infrastructure with different loads.
@@ -58,10 +59,25 @@ def run_load_based_tests(agent, config: Config, save_dir) -> None:
             # Create Test Environment
             env = TestEnvironment(p_net, requests, config)
 
+            # Clone environment for different tests
+            env_rl = copy.deepcopy(env)
+            env_prolog = utils_test.convert_env_prolog(env)
+            env_hybrid = copy.deepcopy(env)
+
+            # Test the Prolog agent in a separate process
+            prolog_queue = Queue()
+            prolog_process = Process(target=_test_prolog_worker, args=(env_prolog, config, load, prolog_queue))
+            prolog_process.start()
+           
             # Test the RL agent
-            result_rl = test_agent(agent, env, config, load)
-            result_prolog = test_prolog(env, config, load)
-            result_hybrid = test_hybrid(agent, env, config, load)
+            result_rl = test_agent(agent, env_rl, config, load)
+
+            # Test the Hybrid agent
+            result_hybrid = test_hybrid(agent, env_hybrid, config, load)
+
+            # Wait for Prolog process to finish and get the result
+            prolog_process.join()
+            result_prolog = prolog_queue.get()
 
             # Update results
             utils_test.update_results(test_result, result_rl, result_prolog, result_hybrid)
@@ -77,10 +93,10 @@ def run_load_based_tests(agent, config: Config, save_dir) -> None:
 
         # Save results to CSV
         file_name = f"summary_results.csv"
-        utils_test.save_results_to_csv(test_result, save_dir, file_name)
+        utils_test.save_results_to_csv(test_result, config.save_dir, file_name)
 
 
-def run_simulation_based_tests(agent, config: Config, save_dir) -> None:
+def run_simulation_based_tests(agent, config: Config) -> None:
     """
     Run simulation-based tests for the RL agent, Prolog agent, and hybrid agent.
     The tests are executed on the same infrastructure starting without load.
@@ -109,10 +125,28 @@ def run_simulation_based_tests(agent, config: Config, save_dir) -> None:
     # Create Test Environment
     env = TestEnvironment(p_net, requests, config)
 
-    # Tests
-    result_rl = test_agent(agent, env, config, load)
-    result_prolog = test_prolog(env, config, load)
-    result_hybrid = test_hybrid(agent, env, config, load)
+    # Clone environment for different tests
+    env_rl = copy.deepcopy(env)
+    env_prolog = utils_test.convert_env_prolog(env)
+    env_hybrid = copy.deepcopy(env)
+
+    # Create queues to collect Prolog result
+    prolog_queue = Queue()
+
+    # Launch Prolog in parallel process
+    env_prolog = utils_test.convert_env_prolog(env)
+    prolog_process = Process(target=_test_prolog_worker, args=(env_prolog, config, load, prolog_queue))
+    prolog_process.start()
+
+    # Launch RL agent in main process
+    result_rl = test_agent(agent, env_rl, config, load)
+
+    # Launch Hybrid in main process
+    result_hybrid = test_hybrid(agent, env_hybrid, config, load)
+
+    # Wait for Prolog process to finish and get the result
+    prolog_process.join()
+    result_prolog = prolog_queue.get()
 
     # Update results
     utils_test.update_results(test_result, result_rl, result_prolog, result_hybrid)
@@ -122,8 +156,13 @@ def run_simulation_based_tests(agent, config: Config, save_dir) -> None:
 
     # Save results to CSV
     file_name = f"summary_results.csv"
-    utils_test.save_results_to_csv(test_result, save_dir, file_name)
+    utils_test.save_results_to_csv(test_result, config.save_dir, file_name)
     
+
+# Wrapper function to run in subprocesses
+def _test_prolog_worker(env: TestEnvironment, config: Config, load: float, result_queue: Queue):
+    result = test_prolog(env, config, load)
+    result_queue.put(result)
 
 
 def test_agent(agent: PPOAgent, env: TestEnvironment, config: Config, load: float = None) -> dict:
@@ -135,10 +174,7 @@ def test_agent(agent: PPOAgent, env: TestEnvironment, config: Config, load: floa
         env (TestEnvironment): The environment in which the agent will be tested.
         config (Config): Configuration object containing test parameters.
         load (float): Load factor for the test.
-    """
-    # Clone the environment to avoid modifying the original one
-    env = copy.deepcopy(env)
-    
+    """    
     # Create instance of AgentInference
     agent_inference = AgentInference(agent, env, config)
 
@@ -157,7 +193,7 @@ def test_agent(agent: PPOAgent, env: TestEnvironment, config: Config, load: floa
 
     for solution in rl_solution:
         # Log individual solutions
-        solution.log(log_dir=TEST_RESULT_DIR, file_name=file_name)
+        solution.log(log_dir=config.save_dir, file_name=file_name)
         # Aggregate results
         if solution.is_feasible():
             result['success_count_rl'] += 1
@@ -179,9 +215,6 @@ def test_prolog(env: TestEnvironment, config: Config, load: float = None) -> dic
         config (Config): Configuration object containing test parameters.
         load (float): Load factor for the test.
     """
-    # Clone the environment to avoid modifying the original one
-    env = copy.deepcopy(env)
-
     # Create instance of PrologInference
     prolog_inference = PrologInference(env, config)
 
@@ -200,7 +233,7 @@ def test_prolog(env: TestEnvironment, config: Config, load: float = None) -> dic
 
     for solution in prolog_solution:
         # Log individual solutions
-        solution.log(log_dir=TEST_RESULT_DIR, file_name=file_name)
+        solution.log(log_dir=config.save_dir, file_name=file_name)
         # Aggregate results
         if solution.is_feasible():
             result['success_count_prolog'] += 1
@@ -223,9 +256,6 @@ def test_hybrid(agent: PPOAgent, env: TestEnvironment, config: Config, load: flo
         config (Config): Configuration object containing test parameters.
         load (float): Load factor for the test.
     """
-    # Clone the environment to avoid modifying the original one
-    env = copy.deepcopy(env)
-
     # Create instance of HybridInference
     hybrid_inference = HybridInference(agent, env, config)
 
@@ -252,8 +282,8 @@ def test_hybrid(agent: PPOAgent, env: TestEnvironment, config: Config, load: flo
     # Iterate over the solutions
     for solution_rl_phase, solution_prolog_phase in zip(solution_rl_list, solution_prolog_list):
         # Log individual solutions
-        solution_rl_phase.log(log_dir=TEST_RESULT_DIR, file_name=file_name_rl)
-        solution_prolog_phase.log(log_dir=TEST_RESULT_DIR, file_name=file_name_prolog)
+        solution_rl_phase.log(log_dir=config.save_dir, file_name=file_name_rl)
+        solution_prolog_phase.log(log_dir=config.save_dir, file_name=file_name_prolog)
         # Aggregate results
         if solution_rl_phase.is_feasible():
             result['success_count_rl_phase'] += 1
