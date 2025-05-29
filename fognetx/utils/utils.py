@@ -5,6 +5,7 @@ if TYPE_CHECKING: from fognetx.utils.types import Config, PPOAgent
 import os
 import yaml
 import torch
+import networkx as nx
 from dataclasses import asdict
 from torch_geometric.data import Data, Batch
 
@@ -187,4 +188,42 @@ def log_update(loss, actor_loss, critic_loss, mean_entropy, mean_reward, mean_va
                     f"{mean_entropy:.4f},{mean_reward:.4f},{mean_value:.4f},"
                     f"{mean_returns:.4f},{mean_advantage:.4f},{gradient_norm:.4f}\n"
                     )
+            
+
+def load_geant_topology() -> nx.Graph:
+    """
+    Load the GEANT topology from a GML file.
+
+    Returns:
+        nx.Graph: The loaded GEANT topology as a NetworkX graph.
+    """
+    # Define the path to the GEANT topology file
+    file_path = os.path.join('test', 'infr', 'geant', 'Geant.gml')
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"GEANT topology file {file_path} does not exist")
+    
+    # Load the GEANT topology from the GML file
+    g:nx.Graph = nx.read_gml(file_path)
+
+    # Refactor the graph to ensure it has the correct attributes
+    g_refactored = nx.Graph()
+
+    # Add nodes with 'id' and 'label' attributes
+    for i, _ in enumerate(g.nodes()):
+        g_refactored.add_node(
+            i,
+            id=i,
+            label=str(i)
+        )
+
+    # Add edges 
+    node_map = {old: new for new, old in enumerate(g.nodes())}  # Map old node IDs to new
+    for u, v in g.edges():
+        g_refactored.add_edge(
+            node_map[u], node_map[v],
+        )
+
+    return g_refactored
             

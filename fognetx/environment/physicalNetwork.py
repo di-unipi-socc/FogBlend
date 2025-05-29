@@ -5,6 +5,7 @@ if TYPE_CHECKING: from fognetx.utils.types import Config
 import os
 import numpy as np
 import networkx as nx
+from fognetx.utils import utils
 
 
 class PhysicalNetwork():
@@ -49,17 +50,23 @@ class PhysicalNetwork():
         Args:
             size (int, optional): Size of the network. If None, a random size is generated.
         """
-        if size is not None:
-            self.num_nodes = size
-        else:
-            self.num_nodes = self.get_random_size(self.min_size, self.max_size, self.iter)
-            self.iter += 1
+        if self.topology == 'waxman':
+            if size is not None:
+                self.num_nodes = size
+            else:
+                self.num_nodes = self.get_random_size(self.min_size, self.max_size, self.iter)
+                self.iter += 1
 
-        # Repeat until a connected waxman graph is created
-        while True:
-            self.net = nx.waxman_graph(self.num_nodes, alpha=0.5, beta=0.2, seed=int(self.rng.integers(0, np.iinfo(np.int32).max)))
-            if nx.is_connected(self.net):
-                break
+            # Repeat until a connected waxman graph is created
+            while True:
+                self.net = nx.waxman_graph(self.num_nodes, alpha=0.5, beta=0.2, seed=int(self.rng.integers(0, np.iinfo(np.int32).max)))
+                if nx.is_connected(self.net):
+                    break
+        elif self.topology == 'geant':
+            self.net = utils.load_geant_topology()
+            self.num_nodes = self.net.number_of_nodes()
+        else:
+            raise ValueError(f"Unknown topology: {self.topology}")
 
         # Vectorize random assignment for nodes
         num_node_resources = len(self.node_resources)

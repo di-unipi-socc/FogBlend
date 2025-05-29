@@ -118,7 +118,7 @@ class Config:
     link_resources = LINK_RESOURCES
 
     # Data (physical network)
-    p_net_topology: str = "custom"
+    p_net_topology: str = "waxman"
     num_nodes: int = 100
     p_net_min_size: int = 50
     p_net_max_size: int = 500
