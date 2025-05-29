@@ -29,7 +29,7 @@ class PrologManager:
         """
         # Compose all the paths to the Prolog files and the python manager
         base_path = os.path.join(FOGBRAINX_DIR, 'fogbrainx.pl')
-        placer_path = os.path.join(FOGBRAINX_DIR, 'placers', 'placer-heu-py.pl')
+        placer_path = os.path.join(FOGBRAINX_DIR, 'placers', 'placer-heu.pl')
         check_path = os.path.join(FOGBRAINX_DIR, 'placers', 'requirements-check-py.pl')
         manager_path = os.path.join('fognetx', 'prolog')
 

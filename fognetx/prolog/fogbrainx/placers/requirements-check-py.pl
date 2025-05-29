@@ -36,20 +36,3 @@ linksOk(S,N,P,AllocBW) :-
     term_string([on(S,N)|P], P_String),
     py_call(utils_prolog:check_bw(AllocBW_String, P_String), Result),
     Result = 1.
-
-latencyOk([((N1,N2),ReqLat)|N2Ns]) :- 
-    link(N1,N2,FeatLat,_), FeatLat =< ReqLat, latencyOk(N2Ns).
-latencyOk([]).
-
-bwOk([(N1,N2)|N2Ns],AllocBW,P) :-
-    link(N1,N2,_,FeatBW),
-    findall(BW, member((N1,N2,BW),AllocBW), BWs), sum_list(BWs, CurrAllocBW), 
-    findall(BW, s2sOnN1N2((N1,N2), P, BW), OkBWs), sum_list(OkBWs, OkAllocBw), 
-    bwTh(T), FeatBW  >=  OkAllocBw - CurrAllocBW + T, 
-    bwOk(N2Ns,AllocBW,P).
-bwOk([],_,_).
-
-relevant(S,N,P,(N,N2),L) :- s2s(S,S2,L,_), member(on(S2,N2),P), dif(N,N2).
-relevant(S,N,P,(N1,N),L) :- s2s(S1,S,L,_), member(on(S1,N1),P), dif(N1,N).
-
-s2sOnN1N2((N1,N2),P,B) :- s2s(S3,S4,_,B), member(on(S3,N1),P), member(on(S4,N2),P).
