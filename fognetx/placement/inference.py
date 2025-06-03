@@ -73,24 +73,23 @@ class PrologInference:
         """
         Run the inference process.
         """
-        # Create PrologManager instance
-        prolog_manager = PrologManager(self.config)
-
-        # Set the prolog manager to the global variable (so that Prolog can call class methods)
-        prolog_manager.set_global_manager()
-
-        # Prepare the FogBrainX
-        prolog_manager.prepare_fogbrainx()
-
-        # Get the physical network from the environment
-        p_net = self.env.p_net
-
-        # Get first request
-        v_net = self.env.current_v_net
-        event_type = self.env.event_type
-        event_time = self.env.event_time
-
         for i in range(self.env.requests.num_v_net):
+
+            # Create PrologManager instance
+            prolog_manager = PrologManager(self.config)
+
+            # Set the prolog manager to the global variable (so that Prolog can call class methods)
+            prolog_manager.set_global_manager()
+
+            # Prepare the FogBrainX
+            prolog_manager.prepare_fogbrainx()
+
+            # Get request information from the environment
+            p_net = self.env.p_net
+            v_net = self.env.current_v_net
+            event_type = self.env.event_type
+            event_time = self.env.event_time
+
             # Update the infrastructure
             prolog_manager.update_p_net(p_net)            
 
@@ -99,12 +98,15 @@ class PrologInference:
 
             # Run Prolog inference
             def run(prolog_manager: PrologManager, queue: Queue):
-                
+                # Measure the time taken for the call
+                start_time = time.time()
+
                 # Call the Prolog inference
                 response = prolog_manager.call_fogbrainx()
 
                 # Parse the response
                 result = {}
+                result['elapsed_time'] = time.time() - start_time
                 result['placement'] = response['P']
                 result['link_mapping'] = prolog_manager.link_mapping
 
@@ -116,19 +118,13 @@ class PrologInference:
             queue = Queue()
             p = Process(target=run, args=(prolog_manager, queue))
             
-            # Measure the time taken for the process
-            start_time = time.time()
             # Start the process
             p.start()
-            # Wait timeout
+            # Wait termination or timeout
             p.join(self.config.timeout)
-            elapsed_time = time.time() - start_time
 
             # Create a solution object
-            solution = Solution(self.env.request_index, event_type, event_time, p_net, v_net, self.config)
-
-            # Update the elapsed time
-            solution.elapsed_time = elapsed_time           
+            solution = Solution(self.env.request_index, event_type, event_time, p_net, v_net, self.config)       
             
             # Check if process is still alive
             if p.is_alive():
@@ -137,9 +133,14 @@ class PrologInference:
                 # Failed solution
                 solution.place_result = False
                 solution.route_result = False
+                solution.elapsed_time = self.config.timeout
             else:
                 # Get the result from the queue
                 result = queue.get()
+
+                # Update the elapsed time
+                solution.elapsed_time = result['elapsed_time']
+
                 if result is None or result['placement'] is None:
                     # Failed solution
                     solution.place_result = False
@@ -166,7 +167,7 @@ class PrologInference:
             solution.running_request = self.env.running_request
 
             # Update environment with the solution
-            self.env.solutions[solution.v_net.id] = solution
+            self.env.solutions[solution.v_net_id] = solution
 
             # Store the solution
             self.solutions.append(solution)
@@ -176,9 +177,6 @@ class PrologInference:
             
             # Go to the next request
             self.env.go_next_arrival(log_leave=False, update_obs=False)
-            v_net = self.env.current_v_net
-            event_type = self.env.event_type
-            event_time = self.env.event_time
 
         return self.solutions
                 
@@ -201,16 +199,17 @@ class HybridInference:
         """
         Run the inference process.
         """
-        # Create PrologManager instance
-        prolog_manager = PrologManager(self.config)
-
-        # Set the prolog manager to the global variable (so that Prolog can call class methods)
-        prolog_manager.set_global_manager()
-
-        # Prepare the FogBrainX
-        prolog_manager.prepare_fogbrainx()
-
         for i in range(self.env.requests.num_v_net):
+
+            # Create PrologManager instance
+            prolog_manager = PrologManager(self.config)
+
+            # Set the prolog manager to the global variable (so that Prolog can call class methods)
+            prolog_manager.set_global_manager()
+
+            # Prepare the FogBrainX
+            prolog_manager.prepare_fogbrainx()
+
             # Copy the physical network
             p_net_original = copy.deepcopy(self.env.p_net)
 
@@ -251,12 +250,15 @@ class HybridInference:
 
             # Run Prolog inference
             def run(prolog_manager: PrologManager, queue: Queue):
+                # Measure the time taken for the call
+                start_time = time.time()
                 
                 # Call the Prolog inference
                 response = prolog_manager.call_hybrid_fogbrainx()
 
                 # Parse the response
                 result = {}
+                result['elapsed_time'] = time.time() - start_time
                 result['placement'] = response['P']
                 result['link_mapping'] = prolog_manager.link_mapping
 
@@ -268,19 +270,13 @@ class HybridInference:
             queue = Queue()
             p = Process(target=run, args=(prolog_manager, queue))
             
-            # Measure the time taken for the process
-            start_time = time.time()
             # Start the process
             p.start()
             # Wait timeout
             p.join(self.config.timeout)
-            elapsed_time = time.time() - start_time
 
             # Create a solution object
-            solution_prolog = Solution(self.env.request_index, self.env.event_type, self.env.event_time, p_net_original, v_net, self.config)
-
-            # Update the elapsed time
-            solution_prolog.elapsed_time = elapsed_time           
+            solution_prolog = Solution(self.env.request_index, self.env.event_type, self.env.event_time, p_net_original, v_net, self.config)        
             
             # Check if process is still alive
             if p.is_alive():
@@ -289,9 +285,14 @@ class HybridInference:
                 # Failed solution
                 solution_prolog.place_result = False
                 solution_prolog.route_result = False
+                solution_prolog.elapsed_time = self.config.timeout
             else:
                 # Get the result from the queue
                 result = queue.get()
+
+                # Update the elapsed time
+                solution_prolog.elapsed_time = result['elapsed_time']
+                
                 if result is None or result['placement'] is None:
                     # Failed solution
                     solution_prolog.place_result = False

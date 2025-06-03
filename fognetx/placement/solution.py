@@ -21,9 +21,8 @@ class Solution:
             v_net: The virtual network.
             config: Environment configuration.
         """
-        # Store the physical network, virtual network, and environment configuration
-        self.p_net = p_net
-        self.v_net = v_net
+        # Store the virtual network id and environment configuration
+        self.v_net_id = v_net.id
         self.config = config
 
         # Solution information
@@ -106,7 +105,7 @@ class Solution:
                     f.write(','.join(fields) + '\n')
                 # Write the solution information
                 f.write(f"{self.event_id},{self.event_type},{self.event_time},"
-                        f"{self.v_net.id},{self.place_result},{self.route_result},"
+                        f"{self.v_net_id},{self.place_result},{self.route_result},"
                         f"{node_mapping},{link_mapping},"
                         f"{self.cost},{self.revenue},"
                         f"{self.r2c_ratio},{self.running_request},{self.elapsed_time}\n"

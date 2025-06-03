@@ -328,7 +328,7 @@ class TestEnvironment(Environment):
         controller.update_p_net_state(p_net, solution, self.observations)
 
         # Update solution
-        self.solutions[solution.v_net.id] = solution
+        self.solutions[solution.v_net_id] = solution
 
         # Update running request count
         self.running_request += 1
