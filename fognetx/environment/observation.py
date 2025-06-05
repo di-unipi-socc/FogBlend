@@ -88,6 +88,9 @@ class Observation:
         # Physical network info
         self.p_net_size = p_net.net.number_of_nodes()
 
+        # Partial solution
+        self.partial_solution: Solution = None
+
 
     def get_nodes_resources(self, net: nx.Graph, node_resources: list[str], nodes=None) -> np.ndarray:
         """
@@ -275,8 +278,8 @@ class Observation:
         node_constraints_mask = resource_comparison.all(dim=2).float()  # [num_v_nodes, num_p_nodes]
 
         # Enforce non-reusability of physical nodes if configured
-        if not self.config.reusable:
-            used_p_nodes = (self.p_nodes_status > 0).squeeze(dim=-1)  # [num_p_nodes]
+        if not self.config.reusable and self.partial_solution is not None:
+            used_p_nodes = [val[0] for val in self.partial_solution.node_mapping.values()]
             node_constraints_mask[:, used_p_nodes] = 0.0
 
         # Mask already placed virtual nodes
@@ -324,6 +327,9 @@ class Observation:
             solution: The solution object associated with the virtual network.
             event_type: The type of the event (arrival or leave).
         """
+        # Update the partial solution
+        self.partial_solution = solution
+
         # Get node resources of the involved nodes
         involved_nodes_resources = self.get_nodes_resources(
             self.p_net.net, self.p_net.node_resources, involved_nodes['place']
@@ -410,6 +416,9 @@ class Observation:
         self.average_distance = torch.zeros(
             (self.average_distance.shape[0], 1), dtype=torch.float32, device=self.device
         )
+
+        # Reset the partial solution
+        self.partial_solution = None
 
     
     def release_v_net(self, solution: Solution) -> None:
