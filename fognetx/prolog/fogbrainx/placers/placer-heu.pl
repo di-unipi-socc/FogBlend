@@ -3,10 +3,22 @@ placement(Services, P, Alloc, NewPlacement) :-
 	once(early_checks(Services, P)),
 	hplacement(OrderedServices, P, OrderedNodes, Alloc, NewPlacement).
 
+% First clause: Try to place on already used nodes
 hplacement([S|Ss], P, OrderedNodes, (AllocHW,AllocBW), Placement) :-
-	member(N, OrderedNodes),
+	findall(N, member(on(_, N), P), Ns),   % Get nodes already used
+    sort(Ns, UniqueNodes),                 % Remove duplicates
+	member(N, UniqueNodes),                % Try each already used node
 	nodeOk(S,N,P,AllocHW), linksOk(S,N,P,AllocBW),
 	hplacement(Ss, [on(S,N)|P], OrderedNodes, (AllocHW,AllocBW), Placement).
+
+% Second clause: Try unused nodes if first clause fails
+hplacement([S|Ss], P, OrderedNodes, (AllocHW,AllocBW), Placement) :-
+	member(N, OrderedNodes),
+	\+ member(on(_, N), P),                % Only try unused nodes
+	nodeOk(S,N,P,AllocHW), linksOk(S,N,P,AllocBW),
+	hplacement(Ss, [on(S,N)|P], OrderedNodes, (AllocHW,AllocBW), Placement).
+
+% Base case: No more services to place
 hplacement([],P,_,_,P).
 
 % Preprocessing to get ordered nodes and services
