@@ -188,6 +188,9 @@ def test_agent(agent: PPOAgent, env: TestEnvironment, config: Config, load: floa
     result['avg_time_failure_rl'] = 0
     result['avg_time_success_rl'] = 0
     result['avg_r2c_ratio_rl'] = 0
+    lt_revenue = 0
+    lt_cost = 0
+    result['lt_r2c_ratio_rl'] = 0
 
     file_name = f"rl_solution_{str(load).replace('.', '_')}.csv" if load else 'rl_solution.csv'
 
@@ -199,9 +202,14 @@ def test_agent(agent: PPOAgent, env: TestEnvironment, config: Config, load: floa
             result['success_count_rl'] += 1
             result['avg_time_success_rl'] += solution.elapsed_time
             result['avg_r2c_ratio_rl'] += solution.r2c_ratio
+            lt_revenue += solution.longterm_revenue
+            lt_cost += solution.longterm_cost
         else:
             result['avg_time_failure_rl'] += solution.elapsed_time
         result['request_count_rl'] += 1
+
+    # Compute long-term r2c ratio
+    result['lt_r2c_ratio_rl'] = lt_revenue / lt_cost if lt_cost > 0 else 0
 
     return result
 
@@ -228,6 +236,9 @@ def test_prolog(env: TestEnvironment, config: Config, load: float = None) -> dic
     result['avg_time_failure_prolog'] = 0
     result['avg_time_success_prolog'] = 0
     result['avg_r2c_ratio_prolog'] = 0
+    lt_revenue = 0
+    lt_cost = 0
+    result['lt_r2c_ratio_prolog'] = 0
 
     file_name = f"prolog_solution_{str(load).replace('.', '_')}.csv" if load else 'prolog_solution.csv'
 
@@ -239,9 +250,14 @@ def test_prolog(env: TestEnvironment, config: Config, load: float = None) -> dic
             result['success_count_prolog'] += 1
             result['avg_time_success_prolog'] += solution.elapsed_time
             result['avg_r2c_ratio_prolog'] += solution.r2c_ratio
+            lt_revenue += solution.longterm_revenue
+            lt_cost += solution.longterm_cost
         else:
             result['avg_time_failure_prolog'] += solution.elapsed_time
         result['request_count_prolog'] += 1
+
+    # Compute long-term r2c ratio
+    result['lt_r2c_ratio_prolog'] = lt_revenue / lt_cost if lt_cost > 0 else 0
 
     return result
 
@@ -272,6 +288,9 @@ def test_hybrid(agent: PPOAgent, env: TestEnvironment, config: Config, load: flo
     result['avg_time_success_rl_phase'] = 0
     result['avg_time_success_prolog_phase'] = 0
     result['avg_r2c_ratio_hybrid'] = 0
+    lt_revenue = 0
+    lt_cost = 0
+    result['lt_r2c_ratio_hybrid'] = 0
 
     # Unpack the hybrid solutions
     solution_rl_list, solution_prolog_list = hybrid_solutions
@@ -295,9 +314,14 @@ def test_hybrid(agent: PPOAgent, env: TestEnvironment, config: Config, load: flo
             result['success_count_prolog_phase'] += 1
             result['avg_time_success_prolog_phase'] += solution_prolog_phase.elapsed_time
             result['avg_r2c_ratio_hybrid'] += solution_prolog_phase.r2c_ratio
+            lt_revenue += solution_prolog_phase.longterm_revenue
+            lt_cost += solution_prolog_phase.longterm_cost
         else:
             # This correspond to the failure of the entire hybrid solution
             result['avg_time_failure_prolog_phase'] += solution_prolog_phase.elapsed_time
         result['request_count_hybrid'] += 1
+
+    # Compute long-term r2c ratio
+    result['lt_r2c_ratio_hybrid'] = lt_revenue / lt_cost if lt_cost > 0 else 0
 
     return result

@@ -1,7 +1,7 @@
 # Save and test folder
 save/
 test/infr
-test/results
+test/results*
 
 # Plot python file
 test/plot.py

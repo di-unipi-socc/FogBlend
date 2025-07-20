@@ -29,6 +29,7 @@ class Solution:
         self.event_id = event_id
         self.event_type = event_type
         self.event_time = event_time
+        self.event_lifetime = v_net.lifetime
         self.place_result = True
         self.route_result = True
         self.node_mapping = OrderedDict()   # e.g. {0: (110, {'cpu': 5, 'gpu': 3, 'ram': 2})}
@@ -36,6 +37,8 @@ class Solution:
         self.cost = 0
         self.revenue = 0
         self.r2c_ratio = 0
+        self.longterm_revenue = 0 
+        self.longterm_cost = 0
         self.running_request = 0
         self.elapsed_time = 0
 
@@ -67,6 +70,10 @@ class Solution:
         # Compute the r2c ratio
         self.r2c_ratio = self.revenue / self.cost if self.cost > 0 else 0
 
+        # Compute long-term revenue and cost
+        self.longterm_revenue = self.revenue * self.event_lifetime
+        self.longterm_cost = self.cost * self.event_lifetime
+
 
     def log(self, log_dir = None, file_name=None) -> None:
         """
@@ -79,7 +86,7 @@ class Solution:
         # Fields to log
         fields = [
             'event_id', 'event_type', 'event_time', 'v_net_id', 'place_result', 'route_result',
-            'node_mapping', 'link_mapping', 'cost', 'revenue', 'r2c_ratio', 'running_request', 'elapsed_time'
+            'node_mapping', 'link_mapping', 'lifetime', 'cost', 'revenue', 'r2c_ratio', 'running_request', 'elapsed_time'
         ]
 
         if self.config.save:
@@ -107,6 +114,6 @@ class Solution:
                 f.write(f"{self.event_id},{self.event_type},{self.event_time},"
                         f"{self.v_net_id},{self.place_result},{self.route_result},"
                         f"{node_mapping},{link_mapping},"
-                        f"{self.cost},{self.revenue},"
+                        f"{self.event_lifetime},{self.cost},{self.revenue},"
                         f"{self.r2c_ratio},{self.running_request},{self.elapsed_time}\n"
                         )

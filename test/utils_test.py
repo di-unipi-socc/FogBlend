@@ -17,14 +17,14 @@ def initialize_result_dict(load: float, num_nodes: int, num_iterations: int) -> 
         dict: A dictionary containing the initialized result values.
     """
     return {
-        'success_count_rl': 0, 'avg_time_success_rl': 0, 'avg_time_failure_rl': 0, 'avg_r2c_ratio_rl': 0,
+        'success_count_rl': 0, 'avg_time_success_rl': 0, 'avg_time_failure_rl': 0, 'avg_r2c_ratio_rl': 0, 'lt_r2c_ratio_rl': 0,
 
-        'success_count_prolog': 0, 'avg_time_success_prolog': 0, 'avg_time_failure_prolog': 0, 'avg_r2c_ratio_prolog': 0,
+        'success_count_prolog': 0, 'avg_time_success_prolog': 0, 'avg_time_failure_prolog': 0, 'avg_r2c_ratio_prolog': 0, 'lt_r2c_ratio_prolog': 0,
 
         'success_count_rl_phase': 0, 'success_count_prolog_phase': 0, 
         'avg_time_success_rl_phase': 0, 'avg_time_success_prolog_phase': 0,
         'avg_time_failure_rl_phase': 0, 'avg_time_failure_prolog_phase': 0, 
-        'avg_r2c_ratio_hybrid': 0,
+        'avg_r2c_ratio_hybrid': 0, 'lt_r2c_ratio_hybrid': 0,
 
         'num_requests': 0,
         'infr_load': load,
@@ -57,12 +57,14 @@ def update_results(accum: Dict, result_rl: Optional[Dict] = None, result_prolog:
         accum['avg_time_success_rl'] += result_rl['avg_time_success_rl']
         accum['avg_time_failure_rl'] += result_rl['avg_time_failure_rl']
         accum['avg_r2c_ratio_rl'] += result_rl['avg_r2c_ratio_rl']
+        accum['lt_r2c_ratio_rl'] += result_rl['lt_r2c_ratio_rl']
 
     if result_prolog:
         accum['success_count_prolog'] += result_prolog['success_count_prolog']
         accum['avg_time_success_prolog'] += result_prolog['avg_time_success_prolog']
         accum['avg_time_failure_prolog'] += result_prolog['avg_time_failure_prolog']
         accum['avg_r2c_ratio_prolog'] += result_prolog['avg_r2c_ratio_prolog']
+        accum['lt_r2c_ratio_prolog'] += result_prolog['lt_r2c_ratio_prolog']
 
     if result_hybrid:
         accum['success_count_prolog_phase'] += result_hybrid['success_count_prolog_phase']
@@ -72,6 +74,7 @@ def update_results(accum: Dict, result_rl: Optional[Dict] = None, result_prolog:
         accum['avg_time_failure_rl_phase'] += result_hybrid['avg_time_failure_rl_phase']
         accum['avg_time_failure_prolog_phase'] += result_hybrid['avg_time_failure_prolog_phase']
         accum['avg_r2c_ratio_hybrid'] += result_hybrid['avg_r2c_ratio_hybrid']
+        accum['lt_r2c_ratio_hybrid'] += result_hybrid['lt_r2c_ratio_hybrid']
 
 
 def convert_env_prolog(env: TestEnvironment) -> TestEnvironment:
@@ -162,11 +165,11 @@ def save_results_to_csv(result, save_dir, file_name) -> None:
         with open(test_result_file, 'w') as f:
             header = [
                 'infr_load', 'num_iterations', 'num_requests', 'num_nodes', 
-                'success_count_rl', 'avg_time_success_rl', 'avg_time_failure_rl', 'avg_r2c_ratio_rl',
-                'success_count_prolog', 'avg_time_success_prolog', 'avg_time_failure_prolog', 'avg_r2c_ratio_prolog',
+                'success_count_rl', 'avg_time_success_rl', 'avg_time_failure_rl', 'avg_r2c_ratio_rl', 'lt_r2c_ratio_rl',
+                'success_count_prolog', 'avg_time_success_prolog', 'avg_time_failure_prolog', 'avg_r2c_ratio_prolog', 'lt_r2c_ratio_prolog',
                 'success_count_rl_phase', 'avg_time_success_rl_phase', 'avg_time_failure_rl_phase', 
                 'success_count_prolog_phase', 'avg_time_success_prolog_phase', 'avg_time_failure_prolog_phase',
-                'avg_r2c_ratio_hybrid'
+                'avg_r2c_ratio_hybrid', 'lt_r2c_ratio_hybrid'
             ]
             f.write(','.join(header) + '\n')
 
@@ -180,15 +183,18 @@ def save_results_to_csv(result, save_dir, file_name) -> None:
             result['avg_time_success_rl'],
             result['avg_time_failure_rl'],
             result['avg_r2c_ratio_rl'],
+            result['lt_r2c_ratio_rl'],
             result['success_count_prolog'],
             result['avg_time_success_prolog'],
             result['avg_time_failure_prolog'],
             result['avg_r2c_ratio_prolog'],
+            result['lt_r2c_ratio_prolog'],
             result['success_count_rl_phase'],
             result['avg_time_success_rl_phase'],
             result['avg_time_failure_rl_phase'],
             result['success_count_prolog_phase'],
             result['avg_time_success_prolog_phase'],
             result['avg_time_failure_prolog_phase'],
-            result['avg_r2c_ratio_hybrid']
+            result['avg_r2c_ratio_hybrid'],
+            result['lt_r2c_ratio_hybrid']
         ])) + '\n')
