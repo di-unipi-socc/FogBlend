@@ -4,7 +4,7 @@ test/infr
 test/results*
 
 # Plot python file
-test/plot.py
+test/plot*.py
 
 # Dockerfile
 dockerfile
