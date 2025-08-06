@@ -310,9 +310,15 @@ class Observation:
         if mask.sum() == 0:
             # If no valid actions choose all not placed v_node 
             v_nodes_not_placed = (self.v_nodes_status == 0).squeeze(dim=-1)
+            
             if v_nodes_not_placed.sum() > 0:
                 # Set the mask to 1 for not placed v_nodes (all p_nodes)
                 mask[v_nodes_not_placed, :] = 1.0
+
+                # Enforce non-reusability of physical nodes if configured (again)
+                if not self.config.reusable and self.partial_solution is not None:
+                    used_p_nodes = [val[0] for val in self.partial_solution.node_mapping.values()]
+                    mask[:, used_p_nodes] = 0.0
 
         # Add batch dimension
         return mask.unsqueeze(0)  # [1, num_v_nodes, num_p_nodes]
