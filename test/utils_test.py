@@ -1,6 +1,6 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import Dict, Optional; from fognetx.utils.types import TestEnvironment
+if TYPE_CHECKING: from typing import Dict, Optional; from fogblend.utils.types import TestEnvironment
 # REGULAR IMPORTS
 import os
 import copy

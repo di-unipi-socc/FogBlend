@@ -1,9 +1,9 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import Dict; from fognetx.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork, Observation
+if TYPE_CHECKING: from typing import Dict; from fogblend.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork, Observation
 # REGULAR IMPORTS
 import networkx as nx
-import fognetx.utils as utils
+import fogblend.utils as utils
 from collections import deque
 
 

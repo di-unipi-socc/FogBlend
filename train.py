@@ -1,9 +1,9 @@
 import numpy as np
-import fognetx.utils.utils as utils
-from fognetx.ppo.agent import PPOAgent
-from fognetx.ppo.trainer import PPOTrainer
-from fognetx.environment import Environment
-from fognetx.config import get_args, Config
+import fogblend.utils.utils as utils
+from fogblend.ppo.agent import PPOAgent
+from fogblend.ppo.trainer import PPOTrainer
+from fogblend.environment import Environment
+from fogblend.config import get_args, Config
 
 
 if __name__ == "__main__":

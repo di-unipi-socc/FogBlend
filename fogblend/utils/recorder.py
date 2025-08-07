@@ -1,6 +1,6 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config, Solution
+if TYPE_CHECKING: from fogblend.utils.types import Config, Solution
 # REGULAR IMPORTS
 import os
 import time

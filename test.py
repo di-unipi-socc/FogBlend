@@ -1,10 +1,10 @@
 import os
 import yaml
 import test.test_logic as tl
-import fognetx.utils.utils as utils
+import fogblend.utils.utils as utils
 from dataclasses import asdict
-from fognetx.ppo.agent import PPOAgent    
-from fognetx.config import get_args, Config, TEST_RESULT_DIR, SAVE_DIR, UNIQUE_FOLDER
+from fogblend.ppo.agent import PPOAgent    
+from fogblend.config import get_args, Config, TEST_RESULT_DIR, SAVE_DIR, UNIQUE_FOLDER
 
 
 if __name__ == "__main__":

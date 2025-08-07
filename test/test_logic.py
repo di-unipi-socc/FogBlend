@@ -1,16 +1,16 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config, PPOAgent
+if TYPE_CHECKING: from fogblend.utils.types import Config, PPOAgent
 # REGULAR IMPORTS
 import os
 import copy
 import numpy as np
 import test.utils_test as utils_test
 from tqdm import tqdm
-from fognetx.config import INFR_DIR
+from fogblend.config import INFR_DIR
 from multiprocessing import Process, Queue
-from fognetx.placement.inference import AgentInference, PrologInference, HybridInference
-from fognetx.environment.environment import TestEnvironment, PhysicalNetwork, VirtualNetworkRequests
+from fogblend.placement.inference import AgentInference, PrologInference, HybridInference
+from fogblend.environment.environment import TestEnvironment, PhysicalNetwork, VirtualNetworkRequests
 
 
 def run_load_based_tests(agent, config: Config) -> None:

@@ -1,9 +1,9 @@
 import os
 import copy
-import fognetx.prolog.utils_prolog as utils_prolog
+import fogblend.prolog.utils_prolog as utils_prolog
 from tqdm import tqdm
-from fognetx.config import get_args, Config, INFR_DIR
-from fognetx.environment.physicalNetwork import PhysicalNetwork
+from fogblend.config import get_args, Config, INFR_DIR
+from fogblend.environment.physicalNetwork import PhysicalNetwork
 
 
 if __name__ == "__main__":

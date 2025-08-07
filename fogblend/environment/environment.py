@@ -1,13 +1,13 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config, VirtualNetwork
+if TYPE_CHECKING: from fogblend.utils.types import Config, VirtualNetwork
 # REGULAR IMPORTS
-import fognetx.placement.controller as controller
-from fognetx.utils.recorder import Recorder
-from fognetx.placement.solution import Solution
-from fognetx.environment.observation import Observation
-from fognetx.environment.physicalNetwork import PhysicalNetwork
-from fognetx.environment.virtualNetworkRequets import VirtualNetworkRequests
+import fogblend.placement.controller as controller
+from fogblend.utils.recorder import Recorder
+from fogblend.placement.solution import Solution
+from fogblend.environment.observation import Observation
+from fogblend.environment.physicalNetwork import PhysicalNetwork
+from fogblend.environment.virtualNetworkRequets import VirtualNetworkRequests
 
 
 class Environment():

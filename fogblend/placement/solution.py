@@ -1,6 +1,6 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config, PhysicalNetwork, VirtualNetwork
+if TYPE_CHECKING: from fogblend.utils.types import Config, PhysicalNetwork, VirtualNetwork
 # REGULAR IMPORTS
 import os
 from typing import OrderedDict

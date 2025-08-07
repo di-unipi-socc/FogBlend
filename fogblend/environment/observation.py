@@ -2,7 +2,7 @@
 from __future__ import annotations; from typing import TYPE_CHECKING
 if TYPE_CHECKING: 
     from typing import List
-    from fognetx.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork
+    from fogblend.utils.types import Config, Solution, PhysicalNetwork, VirtualNetwork
 # REGULAR IMPORTS
 import torch
 import numpy as np

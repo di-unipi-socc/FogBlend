@@ -1,14 +1,14 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config
+if TYPE_CHECKING: from fogblend.utils.types import Config
 # REGULAR IMPORTS
 import os
 import torch
-import fognetx.utils as utils
+import fogblend.utils as utils
 from torch.optim import Adam
-from fognetx.ppo.buffer import PPOBuffer
+from fogblend.ppo.buffer import PPOBuffer
 from torch.distributions import Categorical
-from fognetx.network import ActorCriticNetwork
+from fogblend.network import ActorCriticNetwork
 
 # Suppress torch.load warnings
 import warnings

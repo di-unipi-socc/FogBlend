@@ -1,11 +1,11 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config
+if TYPE_CHECKING: from fogblend.utils.types import Config
 # REGULAR IMPORTS
 import os
 import numpy as np
 import networkx as nx
-from fognetx.utils import utils
+from fogblend.utils import utils
 
 
 class PhysicalNetwork():

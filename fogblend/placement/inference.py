@@ -1,16 +1,16 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import Tuple; from fognetx.utils.types import Config, PPOAgent, TestEnvironment
+if TYPE_CHECKING: from typing import Tuple; from fogblend.utils.types import Config, PPOAgent, TestEnvironment
 # REGULAR IMPORTS
 import sys
 import time
 import copy
-import fognetx.placement.controller as controller
+import fogblend.placement.controller as controller
 from tqdm import tqdm
 from multiprocessing import Process, Queue
-from fognetx.prolog import utils_prolog
-from fognetx.placement.solution import Solution
-from fognetx.prolog.prolog_manager import PrologManager
+from fogblend.prolog import utils_prolog
+from fogblend.placement.solution import Solution
+from fogblend.prolog.prolog_manager import PrologManager
 
 
 class AgentInference:

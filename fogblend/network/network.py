@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from fognetx.network.gnn import GCNConvNet
+from fogblend.network.gnn import GCNConvNet
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.utils import to_dense_batch
 

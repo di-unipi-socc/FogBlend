@@ -2,10 +2,10 @@
 from __future__ import annotations; from typing import TYPE_CHECKING
 
 import torch
-if TYPE_CHECKING: from fognetx.utils.types import Config
+if TYPE_CHECKING: from fogblend.utils.types import Config
 # REGULAR IMPORTS
 import numpy as np
-import fognetx.utils as utils
+import fogblend.utils as utils
 
 
 class PPOBuffer:

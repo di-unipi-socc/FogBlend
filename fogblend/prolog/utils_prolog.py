@@ -1,12 +1,12 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import List, Tuple, Dict; from fognetx.utils.types import VirtualNetwork
+if TYPE_CHECKING: from typing import List, Tuple, Dict; from fogblend.utils.types import VirtualNetwork
 # REGULAR IMPORTS
 import os
 import re
 from collections import OrderedDict
-from fognetx.prolog import manager_instance
-from fognetx.environment.physicalNetwork import PhysicalNetwork
+from fogblend.prolog import manager_instance
+from fogblend.environment.physicalNetwork import PhysicalNetwork
 
 
 def generate_infr_file(p_net: PhysicalNetwork, save_dir, filename) -> None:

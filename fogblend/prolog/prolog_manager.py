@@ -1,15 +1,15 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from typing import List, Tuple, Dict; from fognetx.utils.types import PhysicalNetwork, VirtualNetwork, Solution, Config
+if TYPE_CHECKING: from typing import List, Tuple, Dict; from fogblend.utils.types import PhysicalNetwork, VirtualNetwork, Solution, Config
 # REGULAR IMPORTS
 import os
 import janus_swi as janus  # type: ignore
-import fognetx.utils.utils as utils
-import fognetx.placement.controller as controller
-import fognetx.prolog.utils_prolog as utils_prolog
+import fogblend.utils.utils as utils
+import fogblend.placement.controller as controller
+import fogblend.prolog.utils_prolog as utils_prolog
 from collections import defaultdict, OrderedDict
-from fognetx.config import FOGBRAINX_DIR
-from fognetx.prolog import manager_instance
+from fogblend.config import FOGBRAINX_DIR
+from fogblend.prolog import manager_instance
 
 
 class PrologManager:

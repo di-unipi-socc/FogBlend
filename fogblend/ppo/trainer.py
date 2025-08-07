@@ -1,10 +1,10 @@
 # TYPE CHECKING IMPORTS
 from __future__ import annotations; from typing import TYPE_CHECKING
-if TYPE_CHECKING: from fognetx.utils.types import Config, PPOAgent, Environment
+if TYPE_CHECKING: from fogblend.utils.types import Config, PPOAgent, Environment
 # REGULAR IMPORTS
 import torch
 import numpy as np
-import fognetx.utils as utils
+import fogblend.utils as utils
 
 
 class PPOTrainer:
