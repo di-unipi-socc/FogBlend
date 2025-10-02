@@ -12,6 +12,10 @@ if __name__ == "__main__":
     args = get_args()
     config = Config(**args)
 
+    # Set default number of nodes if GEANT topology is selected
+    if config.topology == "geant":
+        config.num_nodes = 40
+
     # Save the configuration to a YAML file if specified
     if config.save:
         utils.save_config(config)

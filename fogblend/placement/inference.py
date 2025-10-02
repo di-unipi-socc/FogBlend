@@ -22,7 +22,7 @@ class AgentInference:
         self.env = env  # TestEnvironment must be already initialized
         self.config = config
         self.solutions = []
-        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running RL Agent", unit="request", position=0) if config.test == 'simulation' else None
+        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Neural", unit="request", position=0) if config.test == 'simulation' else None
 
 
     def run_inference(self) -> list[Solution]:
@@ -60,7 +60,7 @@ class AgentInference:
 
 class PrologInference:
     """
-    Class to handle inference with Prolog pipeline.
+    Class to handle inference with Prolog (symbolic) pipeline.
     """
     def __init__(self, env: TestEnvironment, config: Config):
         self.env = env  # TestEnvironment must be already initialized
@@ -81,7 +81,7 @@ class PrologInference:
             # Set the prolog manager to the global variable (so that Prolog can call class methods)
             prolog_manager.set_global_manager()
 
-            # Prepare the FogBrainX
+            # Prepare FogBrainX+
             prolog_manager.prepare_fogbrainx()
 
             # Get request information from the environment
@@ -184,15 +184,15 @@ class PrologInference:
 
 class HybridInference:
     """
-    Class to handle inference with RL-Prolog pipeline.
+    Class to handle inference with Neural-Symbolic pipeline.
     """
     def __init__(self, agent: PPOAgent, env: TestEnvironment, config: Config):
         self.agent = agent
         self.env = env  # TestEnvironment must be already initialized
         self.config = config
-        self.solutions_rl = []
-        self.solutions_prolog = []
-        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Hybrid", unit="request", position=2) if config.test == 'simulation' else None
+        self.solutions_neural = []
+        self.solutions_symbolic = []
+        self.pbar = tqdm(total=env.requests.num_v_net, desc="Running Hybrid", unit="request", position=0) if config.test == 'simulation' else None
 
 
     def run_inference(self) -> list[Tuple[Solution, Solution]]:
@@ -207,7 +207,7 @@ class HybridInference:
             # Set the prolog manager to the global variable (so that Prolog can call class methods)
             prolog_manager.set_global_manager()
 
-            # Prepare the FogBrainX
+            # Prepare FogBrainX+
             prolog_manager.prepare_fogbrainx()
 
             # Copy the physical network
@@ -216,7 +216,7 @@ class HybridInference:
             # Get v_net from the environment
             v_net = self.env.current_v_net
 
-            # RL PHASE
+            # NEURAL PHASE
             done = False
 
             start_time = time.time()
@@ -229,24 +229,24 @@ class HybridInference:
                 high_action, low_action, _ = self.agent.act(obs, mask, sample=False)
 
                 # Take a step in the environment
-                done, solution_rl = self.env.step(high_action.item(), low_action.item())
+                done, solution_neural = self.env.step(high_action.item(), low_action.item())
 
                 if done:
                     # Update time taken for the request
                     solution_time = time.time() - start_time
-                    solution_rl.elapsed_time = solution_time
+                    solution_neural.elapsed_time = solution_time
                     # Store the solution
-                    self.solutions_rl.append(solution_rl)
+                    self.solutions_neural.append(solution_neural)
 
-            # PROLOG PHASE    
+            # SYMBOLIC PHASE    
             # Update the infrastructure
             prolog_manager.update_p_net(p_net_original)
 
             # Update request in Prolog
             prolog_manager.update_v_net(v_net)
 
-            # Assert the RL solution in Prolog
-            prolog_manager.assert_rl_solution(solution_rl)
+            # Assert the neural solution in Prolog
+            prolog_manager.assert_neural_solution(solution_neural)
 
             # Run Prolog inference
             def run(prolog_manager: PrologManager, queue: Queue):
@@ -276,47 +276,47 @@ class HybridInference:
             p.join(self.config.timeout)
 
             # Create a solution object
-            solution_prolog = Solution(self.env.request_index, self.env.event_type, self.env.event_time, p_net_original, v_net, self.config)        
+            solution_symbolic = Solution(self.env.request_index, self.env.event_type, self.env.event_time, p_net_original, v_net, self.config)        
             
             # Check if process is still alive
             if p.is_alive():
                 p.terminate()
                 p.join()
                 # Failed solution
-                solution_prolog.place_result = False
-                solution_prolog.route_result = False
-                solution_prolog.elapsed_time = self.config.timeout
+                solution_symbolic.place_result = False
+                solution_symbolic.route_result = False
+                solution_symbolic.elapsed_time = self.config.timeout
             else:
                 # Get the result from the queue
                 result = queue.get()
 
                 # Update the elapsed time
-                solution_prolog.elapsed_time = result['elapsed_time']
+                solution_symbolic.elapsed_time = result['elapsed_time']
                 
                 if result is None or result['placement'] is None:
                     # Failed solution
-                    solution_prolog.place_result = False
-                    solution_prolog.route_result = False
+                    solution_symbolic.place_result = False
+                    solution_symbolic.route_result = False
                 else:
                     # Successful solution
-                    solution_prolog.place_result = True
-                    solution_prolog.route_result = True
+                    solution_symbolic.place_result = True
+                    solution_symbolic.route_result = True
 
                     # Update the solution with the result
                     placement = utils_prolog.parse_placement(result['placement'])
-                    solution_prolog.node_mapping = utils_prolog.convert_placement(placement, v_net)
-                    solution_prolog.link_mapping = result['link_mapping']
+                    solution_symbolic.node_mapping = utils_prolog.convert_placement(placement, v_net)
+                    solution_symbolic.link_mapping = result['link_mapping']
 
-                    # If the RL solution is not feasible, apply the Prolog solution
-                    if not solution_rl.is_feasible():
-                        self.env.apply_prolog_solution(p_net_original, solution_prolog)
+                    # If the neural solution is not feasible, apply the symbolic solution
+                    if not solution_neural.is_feasible():
+                        self.env.apply_symbolic_solution(p_net_original, solution_symbolic)
 
                     # Compute the information of the solution
-                    solution_prolog.compute_info()
+                    solution_symbolic.compute_info()
 
             # Store the solution
-            solution_prolog.running_request = self.env.running_request
-            self.solutions_prolog.append(solution_prolog)
+            solution_symbolic.running_request = self.env.running_request
+            self.solutions_symbolic.append(solution_symbolic)
 
             # Update the progress bar
             self.pbar.update(1) if self.pbar is not None else None
@@ -324,4 +324,4 @@ class HybridInference:
             # Go to the next request
             self.env.go_next_arrival(log_leave=False)
 
-        return self.solutions_rl, self.solutions_prolog
+        return self.solutions_neural, self.solutions_symbolic

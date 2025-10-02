@@ -1,10 +1,10 @@
 hwTh(0.0).      bwTh(0.0).
 
-sum_tuple_list([HW|HWs], (AccCPU, AccRAM, AccStorage)) :-
-    HW = (CPU, RAM, Storage),
-    sum_tuple_list(HWs, (AccCPU1, AccRAM1, AccStorage1)),
+sum_tuple_list([HW|HWs], (AccCPU, AccGPU, AccStorage)) :-
+    HW = (CPU, GPU, Storage),
+    sum_tuple_list(HWs, (AccCPU1, AccGPU1, AccStorage1)),
     AccCPU is AccCPU1 + CPU,
-    AccRAM is AccRAM1 + RAM,
+    AccGPU is AccGPU1 + GPU,
     AccStorage is AccStorage1 + Storage.
 sum_tuple_list([],(0,0,0)).
 
@@ -21,14 +21,14 @@ thingReqsOk(TReqs, TCaps) :- subset(TReqs, TCaps).
 
 hwOk(N,HWCaps,HWReqs,P,AllocHW) :-
     findall(HW,member((N,HW),AllocHW),HWs), 
-    sum_tuple_list(HWs, CurrAllocHW), CurrAllocHW = (CurrAllocCPU, CurrAllocRAM, CurrAllocStorage),
+    sum_tuple_list(HWs, CurrAllocHW), CurrAllocHW = (CurrAllocCPU, CurrAllocGPU, CurrAllocStorage),
     findall(HW, (member(on(S1,N),P), service(S1,_,HW,_)), OkHWs), 
-    sum_tuple_list(OkHWs, NewAllocHW), NewAllocHW = (NewAllocCPU, NewAllocRAM, NewAllocStorage),
+    sum_tuple_list(OkHWs, NewAllocHW), NewAllocHW = (NewAllocCPU, NewAllocGPU, NewAllocStorage),
     hwTh(T), 
-    HWCaps = (MaxCPU, MaxRAM, MaxStorage),
-    HWReqs = (ReqCPU, ReqRAM, ReqStorage),
+    HWCaps = (MaxCPU, MaxGPU, MaxStorage),
+    HWReqs = (ReqCPU, ReqGPU, ReqStorage),
     MaxCPU >= ReqCPU + T - CurrAllocCPU + NewAllocCPU,
-    MaxRAM >= ReqRAM + T - CurrAllocRAM + NewAllocRAM,
+    MaxGPU >= ReqGPU + T - CurrAllocGPU + NewAllocGPU,
     MaxStorage >= ReqStorage + T - CurrAllocStorage + NewAllocStorage. 
 
 linksOk(S,N,P,AllocBW) :-

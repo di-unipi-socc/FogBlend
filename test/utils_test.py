@@ -17,13 +17,13 @@ def initialize_result_dict(load: float, num_nodes: int, num_iterations: int) -> 
         dict: A dictionary containing the initialized result values.
     """
     return {
-        'success_count_rl': 0, 'avg_time_success_rl': 0, 'avg_time_failure_rl': 0, 'avg_r2c_ratio_rl': 0, 'lt_r2c_ratio_rl': 0,
+        'success_count_neural': 0, 'avg_time_success_neural': 0, 'avg_time_failure_neural': 0, 'avg_r2c_ratio_neural': 0, 'lt_r2c_ratio_neural': 0,
 
-        'success_count_prolog': 0, 'avg_time_success_prolog': 0, 'avg_time_failure_prolog': 0, 'avg_r2c_ratio_prolog': 0, 'lt_r2c_ratio_prolog': 0,
+        'success_count_symbolic': 0, 'avg_time_success_symbolic': 0, 'avg_time_failure_symbolic': 0, 'avg_r2c_ratio_symbolic': 0, 'lt_r2c_ratio_symbolic': 0,
 
-        'success_count_rl_phase': 0, 'success_count_prolog_phase': 0, 
-        'avg_time_success_rl_phase': 0, 'avg_time_success_prolog_phase': 0,
-        'avg_time_failure_rl_phase': 0, 'avg_time_failure_prolog_phase': 0, 
+        'success_count_neural_phase': 0, 'success_count_symbolic_phase': 0, 
+        'avg_time_success_neural_phase': 0, 'avg_time_success_symbolic_phase': 0,
+        'avg_time_failure_neural_phase': 0, 'avg_time_failure_symbolic_phase': 0, 
         'avg_r2c_ratio_hybrid': 0, 'lt_r2c_ratio_hybrid': 0,
 
         'num_requests': 0,
@@ -33,53 +33,53 @@ def initialize_result_dict(load: float, num_nodes: int, num_iterations: int) -> 
     }
 
 
-def update_results(accum: Dict, result_rl: Optional[Dict] = None, result_prolog: Optional[Dict] = None, result_hybrid: Optional[Dict] = None) -> None:
+def update_results(accum: Dict, result_neural: Optional[Dict] = None, result_symbolic: Optional[Dict] = None, result_hybrid: Optional[Dict] = None) -> None:
     """
     Update the accumulated results with the new results from the current iteration.
     
     Args:
         accum (dict): The accumulated results dictionary.
-        result_rl (dict, optional): The results from the RL agent.
-        result_prolog (dict, optional): The results from the Prolog agent.
+        result_neural (dict, optional): The results from the neural agent.
+        result_symbolic (dict, optional): The results from the symbolic agent.
         result_hybrid (dict, optional): The results from the hybrid agent.
     """
     # Update requests count with any non none result
-    if result_rl:
-        accum['num_requests'] += result_rl['request_count_rl']
-    elif result_prolog:
-        accum['num_requests'] += result_prolog['request_count_prolog']
+    if result_neural:
+        accum['num_requests'] += result_neural['request_count_neural']
+    elif result_symbolic:
+        accum['num_requests'] += result_symbolic['request_count_symbolic']
     elif result_hybrid:
         accum['num_requests'] += result_hybrid['request_count_hybrid']
 
     # Update other fields
-    if result_rl:
-        accum['success_count_rl'] += result_rl['success_count_rl']
-        accum['avg_time_success_rl'] += result_rl['avg_time_success_rl']
-        accum['avg_time_failure_rl'] += result_rl['avg_time_failure_rl']
-        accum['avg_r2c_ratio_rl'] += result_rl['avg_r2c_ratio_rl']
-        accum['lt_r2c_ratio_rl'] += result_rl['lt_r2c_ratio_rl']
+    if result_neural:
+        accum['success_count_neural'] += result_neural['success_count_neural']
+        accum['avg_time_success_neural'] += result_neural['avg_time_success_neural']
+        accum['avg_time_failure_neural'] += result_neural['avg_time_failure_neural']
+        accum['avg_r2c_ratio_neural'] += result_neural['avg_r2c_ratio_neural']
+        accum['lt_r2c_ratio_neural'] += result_neural['lt_r2c_ratio_neural']
 
-    if result_prolog:
-        accum['success_count_prolog'] += result_prolog['success_count_prolog']
-        accum['avg_time_success_prolog'] += result_prolog['avg_time_success_prolog']
-        accum['avg_time_failure_prolog'] += result_prolog['avg_time_failure_prolog']
-        accum['avg_r2c_ratio_prolog'] += result_prolog['avg_r2c_ratio_prolog']
-        accum['lt_r2c_ratio_prolog'] += result_prolog['lt_r2c_ratio_prolog']
+    if result_symbolic:
+        accum['success_count_symbolic'] += result_symbolic['success_count_symbolic']
+        accum['avg_time_success_symbolic'] += result_symbolic['avg_time_success_symbolic']
+        accum['avg_time_failure_symbolic'] += result_symbolic['avg_time_failure_symbolic']
+        accum['avg_r2c_ratio_symbolic'] += result_symbolic['avg_r2c_ratio_symbolic']
+        accum['lt_r2c_ratio_symbolic'] += result_symbolic['lt_r2c_ratio_symbolic']
 
     if result_hybrid:
-        accum['success_count_prolog_phase'] += result_hybrid['success_count_prolog_phase']
-        accum['success_count_rl_phase'] += result_hybrid['success_count_rl_phase']
-        accum['avg_time_success_rl_phase'] += result_hybrid['avg_time_success_rl_phase']
-        accum['avg_time_success_prolog_phase'] += result_hybrid['avg_time_success_prolog_phase']
-        accum['avg_time_failure_rl_phase'] += result_hybrid['avg_time_failure_rl_phase']
-        accum['avg_time_failure_prolog_phase'] += result_hybrid['avg_time_failure_prolog_phase']
+        accum['success_count_symbolic_phase'] += result_hybrid['success_count_symbolic_phase']
+        accum['success_count_neural_phase'] += result_hybrid['success_count_neural_phase']
+        accum['avg_time_success_neural_phase'] += result_hybrid['avg_time_success_neural_phase']
+        accum['avg_time_success_symbolic_phase'] += result_hybrid['avg_time_success_symbolic_phase']
+        accum['avg_time_failure_neural_phase'] += result_hybrid['avg_time_failure_neural_phase']
+        accum['avg_time_failure_symbolic_phase'] += result_hybrid['avg_time_failure_symbolic_phase']
         accum['avg_r2c_ratio_hybrid'] += result_hybrid['avg_r2c_ratio_hybrid']
         accum['lt_r2c_ratio_hybrid'] += result_hybrid['lt_r2c_ratio_hybrid']
 
 
-def convert_env_prolog(env: TestEnvironment) -> TestEnvironment:
+def convert_env_symbolic(env: TestEnvironment) -> TestEnvironment:
     """
-    Convert the environment to Prolog format removing CUDA if present.
+    Convert the environment to symbolic format removing CUDA if present.
     
     Args:
         env (TestEnvironment): The environment to be converted.
@@ -104,7 +104,7 @@ def finalize_results(result: Dict, total_requests: int) -> None:
         result (dict): The result dictionary containing accumulated test values.
         total_requests (int): The total number of requests processed.
     """
-    agent_types = ['rl', 'prolog']
+    agent_types = ['neural', 'symbolic']
     
     for agent in agent_types:
         success_count = result[f'success_count_{agent}']
@@ -122,8 +122,8 @@ def finalize_results(result: Dict, total_requests: int) -> None:
         else:
             result[f'avg_time_failure_{agent}'] = 0
 
-    # Handle hybrid (split in rl_phase and prolog_phase)
-    for phase in ['rl_phase', 'prolog_phase']:
+    # Handle hybrid (split in neural_phase and symbolic_phase)
+    for phase in ['neural_phase', 'symbolic_phase']:
         success_count = result.get(f'success_count_{phase}', 0)
         failure_count = total_requests - success_count
 
@@ -140,8 +140,8 @@ def finalize_results(result: Dict, total_requests: int) -> None:
         else:
             result[failure_key] = 0
 
-    # Hybrid success is equal to prolog phase success 
-    hybrid_success = result.get('success_count_prolog_phase', 0)
+    # Hybrid success is equal to symbolic phase success 
+    hybrid_success = result.get('success_count_symbolic_phase', 0)
     if hybrid_success > 0:
         result['avg_r2c_ratio_hybrid'] /= hybrid_success
     else:
@@ -165,10 +165,10 @@ def save_results_to_csv(result, save_dir, file_name) -> None:
         with open(test_result_file, 'w') as f:
             header = [
                 'infr_load', 'num_iterations', 'num_requests', 'num_nodes', 
-                'success_count_rl', 'avg_time_success_rl', 'avg_time_failure_rl', 'avg_r2c_ratio_rl', 'lt_r2c_ratio_rl',
-                'success_count_prolog', 'avg_time_success_prolog', 'avg_time_failure_prolog', 'avg_r2c_ratio_prolog', 'lt_r2c_ratio_prolog',
-                'success_count_rl_phase', 'avg_time_success_rl_phase', 'avg_time_failure_rl_phase', 
-                'success_count_prolog_phase', 'avg_time_success_prolog_phase', 'avg_time_failure_prolog_phase',
+                'success_count_neural', 'avg_time_success_neural', 'avg_time_failure_neural', 'avg_r2c_ratio_neural', 'lt_r2c_ratio_neural',
+                'success_count_symbolic', 'avg_time_success_symbolic', 'avg_time_failure_symbolic', 'avg_r2c_ratio_symbolic', 'lt_r2c_ratio_symbolic',
+                'success_count_neural_phase', 'avg_time_success_neural_phase', 'avg_time_failure_neural_phase', 
+                'success_count_symbolic_phase', 'avg_time_success_symbolic_phase', 'avg_time_failure_symbolic_phase',
                 'avg_r2c_ratio_hybrid', 'lt_r2c_ratio_hybrid'
             ]
             f.write(','.join(header) + '\n')
@@ -179,22 +179,22 @@ def save_results_to_csv(result, save_dir, file_name) -> None:
             result['num_iterations'],
             result['num_requests'],
             result['num_nodes'],
-            result['success_count_rl'],
-            result['avg_time_success_rl'],
-            result['avg_time_failure_rl'],
-            result['avg_r2c_ratio_rl'],
-            result['lt_r2c_ratio_rl'],
-            result['success_count_prolog'],
-            result['avg_time_success_prolog'],
-            result['avg_time_failure_prolog'],
-            result['avg_r2c_ratio_prolog'],
-            result['lt_r2c_ratio_prolog'],
-            result['success_count_rl_phase'],
-            result['avg_time_success_rl_phase'],
-            result['avg_time_failure_rl_phase'],
-            result['success_count_prolog_phase'],
-            result['avg_time_success_prolog_phase'],
-            result['avg_time_failure_prolog_phase'],
+            result['success_count_neural'],
+            result['avg_time_success_neural'],
+            result['avg_time_failure_neural'],
+            result['avg_r2c_ratio_neural'],
+            result['lt_r2c_ratio_neural'],
+            result['success_count_symbolic'],
+            result['avg_time_success_symbolic'],
+            result['avg_time_failure_symbolic'],
+            result['avg_r2c_ratio_symbolic'],
+            result['lt_r2c_ratio_symbolic'],
+            result['success_count_neural_phase'],
+            result['avg_time_success_neural_phase'],
+            result['avg_time_failure_neural_phase'],
+            result['success_count_symbolic_phase'],
+            result['avg_time_success_symbolic_phase'],
+            result['avg_time_failure_symbolic_phase'],
             result['avg_r2c_ratio_hybrid'],
             result['lt_r2c_ratio_hybrid']
         ])) + '\n')

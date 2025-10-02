@@ -6,6 +6,7 @@ import os
 import yaml
 import torch
 import networkx as nx
+from pathlib import Path
 from dataclasses import asdict
 from torch_geometric.data import Data, Batch
 
@@ -39,12 +40,12 @@ def warmup_agent(agent: PPOAgent, config: Config) -> None:
 
     # Create a dummy state with the correct dimensions
     obs = {
-        'p_net': Batch.from_data_list([Data(x=torch.zeros((2, p_net_features_dim)).to(config.device), edge_index=torch.tensor([[0, 1], [1, 0]]).to(config.device))]),
+        'p_net': Batch.from_data_list([Data(x=torch.zeros((config.num_nodes, p_net_features_dim)).to(config.device), edge_index=torch.tensor([[0, 1], [1, 0]]).to(config.device))]),
         'v_net': Batch.from_data_list([Data(x=torch.zeros((2, v_net_features_dim)).to(config.device), edge_index=torch.tensor([[0, 1], [1, 0]]).to(config.device))]),
     }
 
     # Crate a dummy mask
-    mask = torch.zeros((1, 2, 2)).to(config.device)
+    mask = torch.zeros((1, 2, config.num_nodes)).to(config.device)
 
     with torch.no_grad():
         # Get the action from the agent
@@ -139,7 +140,67 @@ def save_config(config: Config) -> None:
     # Save the configuration to a YAML file
     with open(os.path.join(save_dir, 'config.yaml'), 'w') as f:
         yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
-        
+
+
+def load_agent_config(model_path: str, config: Config) -> Config:
+    """
+    Load the agent configuration from a YAML file and update the given config object.
+    
+    Args:
+        model_path (str): The path to the model file.
+        config (Config): The configuration object to be updated.
+
+    Returns:
+        Config: The updated configuration object.
+    """
+    if model_path is None:
+        return config
+    
+    # Define the path to the config file (assuming the default structure)
+    config_path = Path(model_path).parent.parent / 'config.yaml'
+
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            loaded_config = yaml.safe_load(f)
+        config.architecture = loaded_config.get('architecture', config.architecture)
+        config.embedding_dim = loaded_config.get('embedding_dim', config.embedding_dim)
+        config.gcn_num_layers = loaded_config.get('gcn_num_layers', config.gcn_num_layers)
+        config.dropout_prob = loaded_config.get('dropout_prob', config.dropout_prob)
+        config.batch_norm = loaded_config.get('batch_norm', config.batch_norm)
+        config.shared_encoder = loaded_config.get('shared_encoder', config.shared_encoder)
+
+        if config.architecture == "original" and config.num_nodes != loaded_config.get('num_nodes', config.num_nodes):
+            raise ValueError("Loaded model is not compatible with the specified number of nodes.")
+    return config
+
+
+def validate_test_config(config: Config) -> Config:
+    """
+    Check the test configuration for validity and set defaults if necessary.
+    
+    Args:
+        config (Config): The configuration object.
+    Returns:
+        Config: The validated and possibly updated configuration object.
+    """
+    # Set default number of nodes if GEANT topology is selected
+    if config.topology == "geant":
+        config.num_nodes = 40
+
+    # Ensure num_nodes is specified for testing
+    if config.num_nodes is None:
+        raise ValueError("Value of -num_nodes must be specified for testing if selected topology is not GEANT.")
+    
+    # Ensure arrival_rate is specified for simulation-based testing
+    if config.test == "simulation" and config.arrival_rate is None:
+        raise ValueError("Value of -arrival_rate must be specified for simulation-based testing.")
+    
+    # Ensure at least one agent test option is selected
+    if not (config.test_neural or config.test_hybrid or config.test_symbolic):
+        raise ValueError("At least one test option must be True: -test_neural, -test_hybrid, or -test_symbolic.")
+    
+    return config
+
 
 def log_update(loss, actor_loss, critic_loss, mean_entropy, mean_reward, mean_value, 
                mean_returns, mean_advantage, gradient_norm, config: Config) -> None:
@@ -198,7 +259,7 @@ def load_geant_topology() -> nx.Graph:
         nx.Graph: The loaded GEANT topology as a NetworkX graph.
     """
     # Define the path to the GEANT topology file
-    file_path = os.path.join('test', 'infr', 'geant', 'Geant.gml')
+    file_path = os.path.join('save', 'Geant.gml')
 
     # Check if the file exists
     if not os.path.exists(file_path):

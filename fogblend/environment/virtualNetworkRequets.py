@@ -38,7 +38,7 @@ class RequestDict(TypedDict):
 
 class VirtualNetworkRequests():
     """
-    Class representing a virtual network in the FogNetX environment.
+    Class representing a virtual network in the FogBlend environment.
     """
 
     def __init__(self, config: Config):

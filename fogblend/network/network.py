@@ -176,13 +176,13 @@ class ActorNetwork(nn.Module):
         # Concatenate virtual node embeddings with repeated physical graph embeddings (shape: [batch_size, num_v_nodes, embedding_dim*4])
         v_node_embeddings_concat = torch.cat((v_node_embeddings, p_graph_embeddings_repeated), dim=-1)
 
-        # Apply high-level policy network (shape: [batch_size, num_v_nodes, 1])
+        # Apply high-level policy network (shape: [batch_size, num_v_nodes])
         high_action_logits = self.high_policy(v_node_embeddings_concat).squeeze(-1)
         
         # Apply mask to ignore padded virtual nodes
         high_action_logits = high_action_logits.masked_fill(v_mask == 0, -1e9)
 
-        return high_action_logits
+        return high_action_logits # shape: [batch_size, num_v_nodes]
 
     
     def forward_low(self, data, high_level_action):

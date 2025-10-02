@@ -29,12 +29,12 @@ early_check_mapping([], _).
 % Check if the sum of resources required by the services does not exceed the resources of the nodes
 early_check_sum(Services, P) :-
 	findall(HWReq, (member(S, Services), service(S,_,HWReq,_)), ReqHWs),
-	sum_tuple_list(ReqHWs, (ReqCPU, ReqRAM, ReqStorage)),
+	sum_tuple_list(ReqHWs, (ReqCPU, ReqGPU, ReqStorage)),
 	findall(HWUsed, (member(on(S,_), P), service(S,_,HWUsed,_)), AllocHWs),
-	sum_tuple_list(AllocHWs, (AllocCPU, AllocRAM, AllocStorage)),
+	sum_tuple_list(AllocHWs, (AllocCPU, AllocGPU, AllocStorage)),
 	findall(HWCap, node(_,_,HWCap,_), AvailableHWs),
-	sum_tuple_list(AvailableHWs, (MaxCPU, MaxRAM, MaxStorage)),
+	sum_tuple_list(AvailableHWs, (MaxCPU, MaxGPU, MaxStorage)),
 	MaxCPU >= ReqCPU + AllocCPU,
-	MaxRAM >= ReqRAM + AllocRAM,
+	MaxGPU >= ReqGPU + AllocGPU,
 	MaxStorage >= ReqStorage + AllocStorage.
 early_check_sum([], _).

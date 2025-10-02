@@ -31,7 +31,7 @@ class PrologManager:
         base_path = os.path.join(FOGBRAINX_DIR, 'fogbrainx.pl')
         placer_path = os.path.join(FOGBRAINX_DIR, 'placers', 'placer-heu.pl')
         check_path = os.path.join(FOGBRAINX_DIR, 'placers', 'requirements-check-py.pl')
-        manager_path = os.path.join('fognetx', 'prolog')
+        manager_path = os.path.join('fogblend', 'prolog')
 
         # Heuristic path
         if self.config.heuristic == 'bw':
@@ -81,8 +81,8 @@ class PrologManager:
         for node, attribute in self.p_net.net.nodes(data=True):
             cpu = attribute['cpu']
             gpu = attribute['gpu']
-            ram = attribute['ram']
-            janus.query_once(f"assert(node({node}, [], ({cpu}, {gpu}, {ram}), [])).")
+            storage = attribute['storage']
+            janus.query_once(f"assert(node({node}, [], ({cpu}, {gpu}, {storage}), [])).")
 
         # Add all the edges
         for u, v, attribute in self.p_net.net.edges(data=True):
@@ -111,8 +111,8 @@ class PrologManager:
         for node, attribute in self.v_net.net.nodes(data=True):
             cpu = attribute['cpu']
             gpu = attribute['gpu']
-            ram = attribute['ram']
-            janus.query_once(f"assert(service({node}, [], ({cpu}, {gpu}, {ram}), [])).")
+            storage = attribute['storage']
+            janus.query_once(f"assert(service({node}, [], ({cpu}, {gpu}, {storage}), [])).")
 
         # Add all the links
         for u, v, data in self.v_net.net.edges(data=True):
@@ -140,12 +140,12 @@ class PrologManager:
         return janus.query_once(f"fogBrainX(id, _P), term_string(_P, P)")
     
 
-    def assert_rl_solution(self, solution: Solution):
+    def assert_neural_solution(self, solution: Solution):
         """
-        Assert the solution returned by the RL agent into the Prolog environment.
+        Assert the solution returned by the neural agent into the Prolog environment.
 
         Args:
-            solution: The solution returned by RL agent.
+            solution: The solution returned by neural agent.
         """
         placement = solution.node_mapping
 
@@ -219,7 +219,7 @@ class PrologManager:
                     # No need to route to the same node
                     continue
                     
-                # Order the link to route (to ensure same behavior as the RL agent)
+                # Order the link to route (to ensure same behavior as the neural agent)
                 p_link = (src_node, tgt_node) if src_node < tgt_node else (tgt_node, src_node)
 
                 # Search for a path in the physical network

@@ -12,21 +12,31 @@ if __name__ == "__main__":
     args = get_args()
     config = Config(**args)
 
+    # Validate the configuration
+    config = utils.validate_test_config(config)
+
+    if config.test_neural or config.test_hybrid:
+        # Load model info from config file if found in the pretrained model parent directory
+        config = utils.load_agent_config(config.pretrained_model_path, config)
+
+        # Load the agent   
+        agent = PPOAgent(config)
+        agent.load(config.pretrained_model_path)
+
+        # Set agent to evaluation mode
+        agent.evaluation_mode()
+
+        # Warm up the agent
+        utils.warmup_agent(agent, config)
+    else:
+        # Only symbolic method is tested, no need to load any neural agent
+        agent = None
+
     # In case of default save_dir, set it to TEST_RESULT_DIR
     config.save_dir = TEST_RESULT_DIR if config.save_dir == SAVE_DIR else os.path.join(config.save_dir, UNIQUE_FOLDER)
 
     # Create the save directory if it doesn't exist
     os.makedirs(config.save_dir, exist_ok=True)
-
-    # Load the model   
-    agent = PPOAgent(config)
-    agent.load(config.pretrained_model_path)
-
-    # Set agent to evaluation mode
-    agent.evaluation_mode()
-
-    # Warm up the agent
-    utils.warmup_agent(agent, config)
 
     # Save the configuration to a YAML file
     with open(os.path.join(config.save_dir, 'config.yaml'), 'w') as f:

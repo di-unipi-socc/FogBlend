@@ -1,0 +1,6 @@
+infr_load,num_iterations,num_requests,num_nodes,success_count_neural,avg_time_success_neural,avg_time_failure_neural,avg_r2c_ratio_neural,lt_r2c_ratio_neural,success_count_symbolic,avg_time_success_symbolic,avg_time_failure_symbolic,avg_r2c_ratio_symbolic,lt_r2c_ratio_symbolic,success_count_neural_phase,avg_time_success_neural_phase,avg_time_failure_neural_phase,success_count_symbolic_phase,avg_time_success_symbolic_phase,avg_time_failure_symbolic_phase,avg_r2c_ratio_hybrid,lt_r2c_ratio_hybrid
+0.3,100,100,100,100,0.14924948215484618,0,0.783314473317677,78.3314473317677,0,0,0.0,0,0,0,0,0.0,0,0,0.0,0,0
+0.4,100,100,100,100,0.14303356885910035,0,0.7463688166729138,74.63688166729138,0,0,0.0,0,0,0,0,0.0,0,0,0.0,0,0
+0.5,100,100,100,58,0.12348868518040099,0.17409440449305943,0.7692222717287188,44.61489176026569,0,0,0.0,0,0,0,0,0.0,0,0,0.0,0,0
+0.6,100,100,100,24,0.07111206650733948,0.15862396516297994,0.8655132689349466,20.772318454438718,0,0,0.0,0,0,0,0,0.0,0,0,0.0,0,0
+0.7,100,100,100,14,0.06925925186702184,0.15582826248435086,0.7501642323828216,10.502299253359503,0,0,0.0,0,0,0,0,0.0,0,0,0.0,0,0

@@ -35,7 +35,10 @@ class Environment():
             epoch: The current epoch of the training.
         """
         # Generate the physical network and virtual network requests
-        self.p_net.generate_p_net()
+        if self.env_config.num_nodes is not None:
+            self.p_net.generate_p_net(self.env_config.num_nodes)
+        else:
+            self.p_net.generate_p_net()
         self.requests.generate_requests(self.p_net.num_nodes)
 
         # Reset the request index
@@ -318,13 +321,13 @@ class TestEnvironment(Environment):
             del self.solutions[current_v_net.id]
     
 
-    def apply_prolog_solution(self, p_net: PhysicalNetwork, solution: Solution) -> None:
-        """Update the state of the physical network using the Prolog solution
+    def apply_symbolic_solution(self, p_net: PhysicalNetwork, solution: Solution) -> None:
+        """Update the state of the physical network using the symbolic solution
         
         Args:
             p_net: The physical network to be updated.
         """
-        # Apply the Prolog solution to the physical network
+        # Apply the symbolic solution to the physical network
         controller.update_p_net_state(p_net, solution, self.observations)
 
         # Update solution

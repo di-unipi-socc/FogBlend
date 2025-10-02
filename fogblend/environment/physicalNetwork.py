@@ -21,7 +21,7 @@ class PhysicalNetwork():
             config: Configuration object containing parameters for the physical network.
         """
         # Topology
-        self.topology = config.p_net_topology
+        self.topology = config.topology
         # Size
         self.num_nodes = None
         self.max_size = config.p_net_max_size

@@ -8,7 +8,7 @@ import fogblend.utils as utils
 from torch.optim import Adam
 from fogblend.ppo.buffer import PPOBuffer
 from torch.distributions import Categorical
-from fogblend.network import ActorCriticNetwork
+from fogblend.network import ActorCriticNetwork, ActorCriticNetworkOriginal
 
 # Suppress torch.load warnings
 import warnings
@@ -21,20 +21,28 @@ class PPOAgent:
     """
 
     def __init__(self, config: Config):
+        # Store the configuration
         self.config = config
 
         # Initialize the actor and critic networks 
         p_net_features_dim = len(config.node_resources) + len(config.link_resources)*3 + 5 # (+5 for v_node_size, v_num_placed_nodes, p_node_status, p_net_node_degrees, average_distance)
         v_net_features_dim = len(config.node_resources) + len(config.link_resources)*3 + 3 # (+3 for v_node_size, v_num_placed_nodes, v_node_status)
 
-        # Initialize the policy network
-        self.policy = ActorCriticNetwork(p_net_features_dim, v_net_features_dim, config.embedding_dim, config.gcn_num_layers, config.dropout_prob, config.batch_norm, config.shared_encoder).to(config.device)
+        # Initialize the policy network based on the selected architecture
+        if config.architecture == "new":
+            self.policy = ActorCriticNetwork(p_net_features_dim, v_net_features_dim, config.embedding_dim, config.gcn_num_layers, config.dropout_prob, config.batch_norm, config.shared_encoder).to(config.device)
+        elif config.architecture == "original":
+            if config.num_nodes is None: 
+                raise ValueError("Value of -num_nodes must be specified for 'original' architecture if selected topology is not GEANT.")
+            self.policy = ActorCriticNetworkOriginal(config.num_nodes, p_net_features_dim, v_net_features_dim, config.embedding_dim, config.gcn_num_layers, config.dropout_prob, config.batch_norm, config.shared_encoder).to(config.device)
+        else:
+            raise ValueError(f"Unknown architecture: {config.architecture}")
 
         # Initialize the optimizer
         self.optimizer = Adam(self.policy.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 
         # Initialize the buffer
-        self.buffer = PPOBuffer(config.seed)  
+        self.buffer = PPOBuffer(config.seed)
 
 
     def act(self, state, mask, sample=True):
@@ -190,6 +198,9 @@ class PPOAgent:
         Args:
             path: The path to the pickle file.
         """
+        # Check that a path is provided
+        if path is None:
+            raise ValueError("Path to the model must be specified.")
         # Check if the file exists
         if os.path.exists(path) == False:
             raise FileNotFoundError(f"File {path} does not exist")

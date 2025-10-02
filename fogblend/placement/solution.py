@@ -32,7 +32,7 @@ class Solution:
         self.event_lifetime = v_net.lifetime
         self.place_result = True
         self.route_result = True
-        self.node_mapping = OrderedDict()   # e.g. {0: (110, {'cpu': 5, 'gpu': 3, 'ram': 2})}
+        self.node_mapping = OrderedDict()   # e.g. {0: (110, {'cpu': 5, 'gpu': 3, 'storage': 2})}
         self.link_mapping = OrderedDict()   # e.g. {(0,1): ([(110,99),(99,50)], {'bandwidth':20})}
         self.cost = 0
         self.revenue = 0

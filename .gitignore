@@ -1,14 +1,3 @@
-# Save and test folder
-save/
-test/infr
-test/results*
-
-# Plot python file
-test/plot*.py
-
-# Dockerfile
-dockerfile
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

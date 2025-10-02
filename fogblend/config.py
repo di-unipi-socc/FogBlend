@@ -26,10 +26,10 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 # Create a parser for command line arguments
-parser = argparse.ArgumentParser(description="FogNetX Configuration")
+parser = argparse.ArgumentParser(description="FogBlend Configuration")
 
 # Resources constants
-NODE_RESOURCES = ["cpu", "gpu", "ram"]
+NODE_RESOURCES = ["cpu", "gpu", "storage"]
 LINK_RESOURCES = ["bandwidth"]
 
 # Directories constants
@@ -37,13 +37,12 @@ SAVE_DIR = "save"
 timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 UNIQUE_FOLDER = f"run_{timestamp}"
 SUMMARY_FILENAME = "global_summary.csv"
-INFR_DIR = os.path.join('test', 'infr', '{num_nodes}')
 TEST_RESULT_DIR = os.path.join('test', 'results', UNIQUE_FOLDER)
-FOGBRAINX_DIR = os.path.join('fognetx', 'prolog', 'fogbrainx')
+FOGBRAINX_DIR = os.path.join('fogblend', 'prolog', 'fogbrainx')
 
 
 # Data (physical network)
-parser.add_argument("-p_net_topology", type=str, help="Physical network topology")
+parser.add_argument("-topology", type=str, help="Physical network topology")
 parser.add_argument("-num_nodes", type=int, help="Number of nodes in the physical network")
 parser.add_argument("-p_net_min_size", type=int, help="Minimum size of the physical network")
 parser.add_argument("-p_net_max_size", type=int, help="Maximum size of the physical network")
@@ -85,6 +84,7 @@ parser.add_argument("-norm_advantage", type=str2bool,help="Normalize advantage v
 
 
 # Model
+parser.add_argument("-architecture", type=str, help="Model architecture ('original' or 'new')")
 parser.add_argument("-embedding_dim", type=int, help="Embedding dimension for the model")
 parser.add_argument("-shared_encoder", type=str2bool, help="Use shared encoder for actor and critic")
 
@@ -92,16 +92,20 @@ parser.add_argument("-shared_encoder", type=str2bool, help="Use shared encoder f
 # Execution
 parser.add_argument("-seed", type=int, help="Random seed for reproducibility")
 parser.add_argument("-mask_actions", type=str2bool, help="Mask invalid actions in the action space")
-parser.add_argument("-reusable", type=str2bool, help="Allow reuse of resources in the environment")
-parser.add_argument("-eval_interval", type=int, help="Interval for evaluation")
+parser.add_argument("-reusable", type=str2bool, help="Allow multiple components of the same application to be mapped to the same node")
+parser.add_argument("-eval_interval", type=int, help="Interval for model evaluation")
 parser.add_argument("-save_interval", type=int, help="Interval for saving the model")
 
 
 # Test
 parser.add_argument("-pretrained_model_path", type=str, help="Path to the pretrained model")
-parser.add_argument("-num_iterations", type=int, help="Number of iterations for the test")
+parser.add_argument("-num_iterations", type=int, help="Number of iterations for the load test")
 parser.add_argument("-test", type=str, help="Test mode ('load' or 'simulation')")
-parser.add_argument("-heuristic", type=str, help="Prolog heuristic for the test")
+parser.add_argument("-heuristic", type=str, help="Prolog heuristic for nodes and components selection ('bw' or 'hw')")
+parser.add_argument("-timeout", type=int, help="Timeout for Prolog in seconds")
+parser.add_argument("-test_neural", type=str2bool, help="Whether to test the Neural approach")
+parser.add_argument("-test_symbolic", type=str2bool, help="Whether to test the Symbolic approach")
+parser.add_argument("-test_hybrid", type=str2bool, help="Whether to test the Hybrid approach")
 
 
 # System
@@ -118,8 +122,8 @@ class Config:
     link_resources = LINK_RESOURCES
 
     # Data (physical network)
-    p_net_topology: str = "waxman"
-    num_nodes: int = 100
+    topology: str = "waxman"
+    num_nodes: int = None
     p_net_min_size: int = 50
     p_net_max_size: int = 500
     p_net_min_node_resources: int = 50
@@ -156,8 +160,9 @@ class Config:
     norm_advantage: bool = True
 
     # Model
+    architecture: str = "new"
     embedding_dim: int = 128
-    gcn_num_layers: int = 2
+    gcn_num_layers: int = 3
     batch_norm: bool = False
     dropout_prob: float = 0.0
     shared_encoder: bool = False
@@ -175,6 +180,9 @@ class Config:
     test: str = "load"
     timeout: int = 300
     heuristic: str = "bw"
+    test_neural: bool = True
+    test_symbolic: bool = True
+    test_hybrid: bool = True
 
     # System
     save: bool = True

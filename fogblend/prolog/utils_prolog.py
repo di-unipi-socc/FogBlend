@@ -27,8 +27,8 @@ def generate_infr_file(p_net: PhysicalNetwork, save_dir, filename) -> None:
         for node, attribute in p_net.net.nodes(data=True):
             cpu = attribute['cpu']
             gpu = attribute['gpu']
-            ram = attribute['ram']
-            f.write(f"node({node}, [], ({cpu}, {gpu}, {ram}), []).\n")
+            storage = attribute['storage']
+            f.write(f"node({node}, [], ({cpu}, {gpu}, {storage}), []).\n")
 
         # Add all the edges
         for u, v, attribute in p_net.net.edges(data=True):
@@ -63,7 +63,7 @@ def convert_placement(placement: List[Tuple], v_net: VirtualNetwork):
     
     Example input: [(4, 29), (3, 49), (2, 49), (1, 49), (0, 49)]
     
-    Returns: {0: (49, {'cpu': 1, 'gpu': 0, 'ram': 0}), ...}
+    Returns: {0: (49, {'cpu': 1, 'gpu': 0, 'storage': 0}), ...}
     """
 
     # Create a dictionary to store the converted placement
@@ -78,7 +78,7 @@ def convert_placement(placement: List[Tuple], v_net: VirtualNetwork):
         converted_placement[v] = (p, {
             'cpu': v_node['cpu'],
             'gpu': v_node['gpu'],
-            'ram': v_node['ram']
+            'storage': v_node['storage']
         })
     
     return converted_placement
@@ -97,7 +97,7 @@ def apply_solution(p_net: PhysicalNetwork, node_mapping: Dict, link_mapping: Dic
         # Update the physical node with the resources
         p_net.net.nodes[p]['cpu'] -= resources['cpu']
         p_net.net.nodes[p]['gpu'] -= resources['gpu']
-        p_net.net.nodes[p]['ram'] -= resources['ram']
+        p_net.net.nodes[p]['storage'] -= resources['storage']
 
     for (u, v), (links, data) in link_mapping.items():
         # Update the physical links with the bandwidth
