@@ -1,12 +1,13 @@
-<p align="center">
-  <img src="save/img/logo.png" alt="FogBlend Logo" width="400"/>
-</p>
+<div align="center">
+<img src="save/img/logo.png" alt="FogBlend Logo" width="300"/> 
+</div>
+<div align="center">
+<h2 align="center">A neuro-symbolic approach to the Cloud-Edge application placement problem</h2>
+</div>
 
-# FogBlend
+**FogBlend** is a neuro-symbolic approach to the Cloud-Edge application placement problem, combining the strengths of neural inference and symbolic reasoning. It leverages an enhanced version of [FlagVNE](https://github.com/GeminiLight/flag-vne) (FlagVNE+) as the neural agent to generate initial placement solutions, and extends [FogBrainX](https://github.com/di-unipi-socc/fogbrainx) (FogBrainX+) as the symbolic engine to correct invalid allocations through continuous reasoning.
 
-FogBlend is a neuro-symbolic approach to the Cloud-Edge application placement problem, combining the strengths of neural inference and symbolic reasoning. It leverages an enhanced version of FlagVNE (FlagVNE+) as the neural agent to generate initial placement solutions, and extends FogBrainX (FogBrainX+) as the symbolic engine to correct invalid allocations through continuous reasoning.
-
-This repository contains the full implementation of FogBlend along with a Python-based simulator for running experiments and benchmarks.
+This repository contains the full implementation of **FogBlend** along with a Python-based simulator for running experiments and benchmarks.
 
 ## Contents
 
