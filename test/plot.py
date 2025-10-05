@@ -39,14 +39,14 @@ USE_PAPER_RESULTS = True  # Set to True to include paper results in simulation p
 
 # DATA FOLDERS
 FOLDER_LIST_LOAD = [
-        ("test/results/load_100/run_2025-07-13_22h05m09s", 100, "test/results/load_100_original/run_2025-08-04_20h21m11s"),
-        ("test/results/load_500/run_2025-07-13_23h59m10s", 500, "test/results/load_500_original/run_2025-08-04_21h54m58s"),
+        ("test/results/load_100/run_2025-07-13_22h05m09s", "Waxman 100", "test/results/load_100_original/run_2025-08-04_20h21m11s"),
+        ("test/results/load_500/run_2025-07-13_23h59m10s", "Waxman 500", "test/results/load_500_original/run_2025-08-04_21h54m58s"),
 ]
 
 FOLDER_LIST_SIMULATION = [
         ("test/results/simulations_geant", "GÉANT", "test/results/simulations_geant_original"),
-        ("test/results/simulations_100", 100, "test/results/simulations_100_original"),
-        ("test/results/simulations_500", 500, "test/results/simulations_500_original"),
+        ("test/results/simulations_100", "Waxman 100", "test/results/simulations_100_original"),
+        ("test/results/simulations_500", "Waxman 500", "test/results/simulations_500_original"),
 ]
 
 
@@ -289,7 +289,10 @@ def load_plot(folder, topology, original):
         ax.bar_label(container, fmt='%d%%', label_type='edge', padding=3, fontsize=LABELS_FONTSIZE, rotation=90)
 
     # Customize the plot
-    plt.title(f'Success Rate ({topology} Nodes - Load)', fontsize=TITLE_FONTSIZE)
+    if type(topology) is int:
+        plt.title(f'Success Rate ({topology} Nodes - Load)', fontsize=TITLE_FONTSIZE)
+    else:
+        plt.title(f'Success Rate ({topology} - Load)', fontsize=TITLE_FONTSIZE)
     plt.xlabel('Infrastructure Load (%)', fontsize=AXIS_FONTSIZE)
     plt.xticks([i for i in range(len(LOADS))], [str(int(l*100)) + "%" for l in LOADS], fontsize=TICKS_FONTSIZE)
     plt.ylim(0, 115)
@@ -347,7 +350,10 @@ def load_plot(folder, topology, original):
     plt.ylabel('Execution Time (s)', fontsize=AXIS_FONTSIZE)
     plt.yscale('log')
     plt.ylim(1e-2, 1e2)
-    plt.title(f'Execution Time ({topology} Nodes - Load)', fontsize=TITLE_FONTSIZE)
+    if type(topology) is int:
+        plt.title(f'Execution Time ({topology} Nodes - Load)', fontsize=TITLE_FONTSIZE)
+    else:
+        plt.title(f'Execution Time ({topology} - Load)', fontsize=TITLE_FONTSIZE)
     plt.legend(title='Method', fontsize=LEGEND_FONTSIZE, title_fontsize=LEGEND_FONTSIZE, loc='upper left')
     plt.tight_layout()
     plt.savefig(os.path.join(plot_dir, 'execution_time_by_load.png'))
@@ -384,7 +390,10 @@ def load_plot(folder, topology, original):
         ax.bar_label(container, fmt='%.2f', label_type='edge', padding=3, fontsize=LABELS_FONTSIZE, rotation=90)
 
     # Customize the plot
-    plt.title(f'R2C Ratio ({topology} Nodes - Load)', fontsize=TITLE_FONTSIZE)
+    if type(topology) is int:
+        plt.title(f'R2C Ratio ({topology} Nodes - Load)', fontsize=TITLE_FONTSIZE)
+    else:
+        plt.title(f'R2C Ratio ({topology} - Load)', fontsize=TITLE_FONTSIZE)
     plt.xlabel('Infrastructure Load (%)', fontsize=AXIS_FONTSIZE)
     plt.xticks([i for i in range(len(LOADS))], [str(int(l*100)) + "%" for l in LOADS], fontsize=TICKS_FONTSIZE)
     plt.yticks(fontsize=TICKS_FONTSIZE)
@@ -645,7 +654,8 @@ def simulation_plot(folder, topology, original):
     # Customize the plot
     plt.xticks(fontsize=TICKS_FONTSIZE)
     plt.yticks(fontsize=TICKS_FONTSIZE)
-    plt.legend(loc='upper left', title='Method', fontsize=LEGEND_FONTSIZE, title_fontsize=LEGEND_FONTSIZE, ncols=3)
+    plt.legend(loc='upper left', fontsize=LEGEND_FONTSIZE, title_fontsize=LEGEND_FONTSIZE, ncols=2)
+    # plt.legend(loc='upper left', title='Method', fontsize=LEGEND_FONTSIZE, title_fontsize=LEGEND_FONTSIZE, ncols=2)
 
     # Set ylim and remove 110 tick
     ax = plt.gca()

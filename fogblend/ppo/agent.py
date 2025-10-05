@@ -205,6 +205,6 @@ class PPOAgent:
         if os.path.exists(path) == False:
             raise FileNotFoundError(f"File {path} does not exist")
         # Load the model
-        checkpoint = torch.load(path)
+        checkpoint = torch.load(path, map_location=self.config.device)
         self.policy.load_state_dict(checkpoint['policy'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])

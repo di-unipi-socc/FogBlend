@@ -30,7 +30,7 @@ In the repository is provided a Dockerfile to build a container including all th
 
 **Optional (for GPU acceleration):**
 - NVIDIA GPU with CUDA support
-- NVIDIA Driver: Version 450.80.02 or later
+- NVIDIA Driver
 - NVIDIA Container Toolkit
 
 ### Building the Container
@@ -63,7 +63,7 @@ Once inside the container, verify the installation:
 
 ```bash
 # Check Python and PyTorch
-python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 
 # Check SWI-Prolog
 swipl --version
@@ -91,8 +91,8 @@ python train.py <PARAMETERS>
 - **topology**: The topology of the infrastructures used for training (`Waxman` or `GÉANT`). If `GÉANT` is selected, the `num_nodes`, `p_net_min_size`, and `p_net_max_size` parameters are overridden. Default is `Waxman`.
 - **arrival_rate**: Arrival rate of requests during the training simulations. If not indicated, for each epoch it will be generated according to the size of the infrastructure used.
 - **architecture**: Architecture of the model to train, where `original` corresponds to FlagVNE while `new` corresponds to FlagVNE+. Default is `new`.
-- **reusable**: Whether to allow multiple components of the same application to be mapped to the same node
-- **mask_actions**: Whether to mask invalid actions in the action space
+- **reusable**: Whether to allow multiple components of the same application to be mapped to the same node.
+- **mask_actions**: Whether to mask invalid actions in the action space (i.e., prevent the agent from placing application components on nodes that do not meet the hardware requirements).
 
 ### Training Notes
 The `new` architecture has been designed to provide a model capable of making inference on any infrastructure size. For this reason, it is suggested to avoid setting `num_nodes` and `topology` parameters for this architecture option in order to use the default training strategy.
@@ -202,7 +202,7 @@ To select the data to consider for plotting, modify the `FOLDER_LIST_LOAD` and `
 Where:
 
 - **folder_dir**: The directory of the target folder run (for load test) or the directory of the folder containing one or more simulation runs (if multiple runs are present, results will be aggregated).
-- **topology**: The topology used in the experiments (e.g., `GÉANT`, `Waxman`).
+- **topology**: The topology used in the experiments (e.g., `GÉANT`, `Waxman 100`, `Waxman 500`).
 - **original_dir**: Same as **folder_dir** but considering results obtained with another neural model (e.g., FlagVNE). If provided, the results will be added to the plot for comparison; if `None`, it will be ignored.
 
 ### Generating Plots

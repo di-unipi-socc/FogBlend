@@ -66,7 +66,7 @@ class PhysicalNetwork():
             self.net = utils.load_geant_topology()
             self.num_nodes = self.net.number_of_nodes()
         else:
-            raise ValueError(f"Unknown topology: {self.topology}")
+            raise ValueError(f"Unknown topology: {self.topology}. Use waxman or geant instead.")
 
         # Vectorize random assignment for nodes
         num_node_resources = len(self.node_resources)
