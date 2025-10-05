@@ -26,6 +26,7 @@ In the repository is provided a Dockerfile to build a container including all th
 **Required:**
 - **Docker:** Version 19.03 or later
 - **Operating System:** Linux, macOS, or Windows with WSL2
+- **Architecture:** x86_64 (Intel/AMD)
 
 **Optional (for GPU acceleration):**
 - NVIDIA GPU with CUDA support
@@ -70,6 +71,8 @@ swipl --version
 # Check other key libraries
 python -c "import torch_geometric; import numpy; import pandas; print('All libraries loaded successfully')"
 ```
+
+**Note:** If the machine has multiple CUDA-enabled GPUs available, you can specify which GPU to use by adding `CUDA_VISIBLE_DEVICES=<x>` at the beginning of the following command, where `<x>` corresponds to the index of the desired GPU.
 
 ## Training Commands
 
@@ -164,7 +167,7 @@ python test.py -test load -save_dir test/results/load_100 -num_nodes 100 -test_n
 
 **Simulation test with all three approaches:**
 ```bash
-python test.py -test simulation -pretrained_model_path save/fogblend/model/model.pkl -save_dir test/results/simulation_geant -topology geant -arrival_rate 0.006
+python test.py -test simulation -pretrained_model_path save/fogblend/model/model.pkl -save_dir test/results/simulations_geant -topology geant -arrival_rate 0.006
 ```
 
 

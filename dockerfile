@@ -14,32 +14,37 @@ RUN add-apt-repository ppa:swi-prolog/stable && \
 # Ensure Python points to Python3
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Upgrade pip
-RUN pip3 install --upgrade pip
+# Install PyTorch
+RUN pip3 install torch==2.5.0 --index-url https://download.pytorch.org/whl/cu121
 
-# Install PyTorch with CUDA
-RUN pip3 install torch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch Geometric
+RUN pip3 install torch-geometric
+
+# Install PyG extensions
+RUN pip3 install pyg_lib torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.5.0+cu121.html
 
 # Install other dependencies
-RUN pip3 install numpy pandas matplotlib seaborn networkx pyyaml tqdm ortools colorama torchopt tensorboard gym==0.22.0 scikit-learn higher swiplserver janus_swi
-RUN pip3 install torch-geometric
-RUN pip3 install pyg_lib torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.5.0+cu121.html
-RUN pip3 install --force-reinstall scipy
+RUN pip3 install numpy pandas matplotlib seaborn networkx tqdm pyyaml janus_swi 
 
-# Create a non-root user with a specific UID and GID
+# Set working directory
+WORKDIR /workspace
+
+# Create a user with a specific UID and GID
 ARG USER_ID
 ARG GROUP_ID
-RUN groupadd -g $GROUP_ID user && \
-    useradd -m -u $USER_ID -g $GROUP_ID -s /bin/bash user && \
-    usermod -aG sudo user && \
-    echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-# Set working directory and permissions
-WORKDIR /workspace
-RUN chown -R user:user /workspace
+# Create user only if the UID doesn't already exist
+RUN if ! getent passwd $USER_ID >/dev/null 2>&1; then \
+        if ! getent group $GROUP_ID >/dev/null 2>&1; then \
+            groupadd -g $GROUP_ID user; \
+        fi && \
+        useradd -m -u $USER_ID -g $GROUP_ID -s /bin/bash user; \
+    else \
+        echo "User with UID $USER_ID already exists"; \
+    fi
 
-# Switch to non-root user
-USER user
+# Switch to user by UID
+USER ${USER_ID}
 
 # Default command
 CMD ["bash"]
